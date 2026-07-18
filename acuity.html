@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060810">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TrackX">
+<title>TRACKX — מכשיר מדידה לראייה יומיומית</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700;900&family=Heebo:wght@200;300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#060810; --slate:#0E1220; --well:#0A0D18;
+  --edge:#1D2335; --edge2:#2C3550;
+  --paper:#F2F4F8; --mist:#8B94A7; --dim:#565E70;
+  /* צבעי SideRays המקוריים */
+  --sun:#EAB308; --sun-hi:#F7CE45; --sun-ink:#191203; --sun-dim:#A87F06;
+  --moon:#96C8FF; --moon-dim:#4E77AC;
+  --act:#EAB308; --act-ink:#191203; --act-dim:#A87F06;
+  --coat-a:#3FBF97; --coat-b:#3A8FD0; --coat-c:#8A64D8;
+  --good:#5ED9A2; --bad:#E86A5E;
+  --iris:#F2F4F8; --amber:#EAB308;
+  --display:'Frank Ruhl Libre',Georgia,serif;
+  --body:'Heebo',system-ui,-apple-system,sans-serif;
+  --sp:cubic-bezier(.22,.9,.24,1);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+@supports (height:100svh){ .stage{height:100svh} }
+body{background:var(--ink);color:var(--paper);font-family:var(--body);font-weight:300;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;font-variant-numeric:tabular-nums}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer;touch-action:manipulation}
+.stage,.pane{touch-action:manipulation}
+:focus-visible{outline:2px solid var(--sun);outline-offset:3px;border-radius:4px}
+::selection{background:rgba(234,179,8,.3)}
+.wrap{max-width:520px;margin:0 auto;padding:22px 20px calc(104px + env(safe-area-inset-bottom));position:relative;z-index:1}
+.hidden{display:none!important}
+
+/* ---------- Flip Words: תג מתחלף (מטושטש+גדל/קטן, כמו Aceternity) ---------- */
+.flipword{position:relative;display:inline-block;height:1.2em;min-width:3.6em;vertical-align:-.2em}
+.flipword b{position:absolute;inset-inline-start:0;top:0;white-space:nowrap;
+  color:var(--sun);font-weight:600;will-change:transform,filter,opacity}
+.fw-in{animation:fwIn .5s var(--sp) forwards}
+.fw-out{animation:fwOut .4s var(--sp) forwards}
+@keyframes fwIn{from{opacity:0;transform:translateY(7px) scale(.92);filter:blur(6px)}
+  to{opacity:1;transform:none;filter:blur(0)}}
+@keyframes fwOut{from{opacity:1;transform:none;filter:blur(0)}
+  to{opacity:0;transform:translateY(-9px) scale(1.1);filter:blur(6px)}}
+
+/* ---------- מסך פתיחה ---------- */
+#splash{position:fixed;inset:0;z-index:100;background:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+  transition:opacity .5s var(--sp),transform .6s var(--sp)}
+#splash.lift{opacity:0;transform:translateY(-4%);pointer-events:none}
+#splash .mark{width:112px;height:112px}
+#splash .mark svg{width:100%;height:100%;transform:rotate(-90deg)}
+.mk-t{fill:none;stroke:var(--edge);stroke-width:2}
+.mk-c{fill:none;stroke-width:2.5;stroke-linecap:round;
+  stroke:var(--sun);stroke-dasharray:327;stroke-dashoffset:327;
+  animation:mkDraw 1.05s .1s var(--sp) forwards;
+  filter:drop-shadow(0 0 8px rgba(234,179,8,.6))}
+@keyframes mkDraw{to{stroke-dashoffset:0}}
+.mk-i{fill:none;stroke:var(--moon);stroke-width:1.2;opacity:0;
+  stroke-dasharray:189;stroke-dashoffset:189;
+  animation:mkDraw .7s .55s var(--sp) forwards,mkIn .2s .55s forwards}
+.mk-p{fill:var(--sun);opacity:0;animation:mkIn .3s .95s forwards;transform-origin:center}
+@keyframes mkIn{to{opacity:1}}
+.wordmark{font-family:var(--body);font-weight:200;font-size:19px;color:var(--paper);
+  letter-spacing:.55em;text-indent:.55em;opacity:0;animation:wmIn .8s .5s var(--sp) forwards}
+@keyframes wmIn{from{opacity:0;letter-spacing:.9em}to{opacity:1;letter-spacing:.55em}}
+.sline{width:120px;height:1px;background:var(--edge);overflow:hidden;border-radius:1px}
+.sline i{display:block;height:100%;width:0;background:var(--sun);
+  animation:slFill 1.15s .2s var(--sp) forwards;box-shadow:0 0 6px rgba(234,179,8,.8)}
+@keyframes slFill{to{width:100%}}
+
+/* ---------- כרטיס תלת-ממד (Aceternity, גיירוסקופ במקום עכבר) ---------- */
+.tilt3d{perspective:1000px}
+.tilt3d-body{position:relative;transform-style:preserve-3d;text-align:center;
+  background:linear-gradient(180deg,rgba(242,244,248,.045),rgba(242,244,248,.012) 40%),var(--slate);
+  border:1px solid var(--edge);border-radius:22px;padding:28px 22px 26px;overflow:hidden;
+  box-shadow:0 1px 0 rgba(242,244,248,.06) inset,0 30px 64px -30px rgba(0,0,0,.85);
+  transform:perspective(1000px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg))}
+.tilt3d-body::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  opacity:var(--lit,.4);mix-blend-mode:screen;
+  background:conic-gradient(from calc(var(--a,220deg) - 90deg),
+    transparent 0deg,rgba(234,179,8,.4) 10deg,transparent 34deg,
+    transparent 146deg,rgba(150,200,255,.35) 186deg,transparent 214deg,transparent 360deg)}
+.t3d-item{position:relative;transform:translateZ(var(--tz,0px))}
+
+/* ---------- כניסת מסך מדורגת ---------- */
+.wrap.enter>*{opacity:0;transform:translateY(10px);
+  animation:pgIn .55s var(--sp) forwards;animation-delay:calc(var(--pi,0)*70ms)}
+@keyframes pgIn{to{opacity:1;transform:none}}
+
+/* ---------- הרקע: SideRays ---------- */
+.rays{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.rays canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.85}
+/* נפילה ל-CSS אם אין WebGL */
+.no-gl .rays::before,.no-gl .rays::after{content:'';position:absolute;inset:-25%;
+  transform-origin:100% 0;animation:sway 18s ease-in-out infinite alternate}
+.no-gl .rays::before{filter:blur(30px);
+  background:conic-gradient(from 195deg at 92% -4%,
+    transparent 0deg,rgba(234,179,8,.18) 8deg,transparent 22deg,
+    transparent 36deg,rgba(234,179,8,.10) 48deg,transparent 62deg,
+    transparent 76deg,rgba(150,200,255,.10) 90deg,transparent 106deg,transparent 360deg)}
+.no-gl .rays::after{filter:blur(52px);animation-duration:24s;animation-delay:-9s;
+  background:conic-gradient(from 206deg at 96% -6%,
+    transparent 0 28deg,rgba(150,200,255,.12) 42deg,transparent 58deg,
+    transparent 72deg,rgba(234,179,8,.07) 86deg,transparent 102deg,transparent 360deg)}
+@keyframes sway{from{transform:rotate(-2deg)}to{transform:rotate(2.4deg)}}
+
+/* ---------- טיפוגרפיה ---------- */
+.eyebrow{font-size:9.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--dim);font-weight:500}
+.eyebrow.on{color:var(--sun)}
+h1{font-family:var(--display);font-weight:900;font-size:33px;letter-spacing:-.015em;line-height:1.1}
+h2{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.26}
+h3{font-family:var(--display);font-weight:500;font-size:15px}
+.lead{color:var(--mist);font-size:13.5px;line-height:1.75;font-weight:300}
+.lead b{font-weight:500;color:var(--paper)}
+.tiny{font-size:11px;color:var(--dim);line-height:1.65}
+.num{font-family:var(--display);font-weight:900;letter-spacing:-.03em;line-height:1}
+
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+.hero{position:relative;margin-top:16px;border-radius:22px;padding:24px 20px 20px;text-align:center;
+  background:linear-gradient(180deg,rgba(242,244,248,.045),rgba(242,244,248,.012) 40%),var(--slate);
+  border:1px solid var(--edge);overflow:hidden;isolation:isolate;
+  box-shadow:0 1px 0 rgba(242,244,248,.06) inset,0 24px 50px -30px rgba(0,0,0,.9)}
+.hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 82% -30%,rgba(234,179,8,.10),transparent 55%),
+             radial-gradient(120% 90% at 12% 120%,rgba(150,200,255,.07),transparent 55%)}
+.dial{position:relative;width:148px;height:148px;margin:0 auto;display:grid;place-items:center}
+.dial svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.dial .rt{fill:none;stroke:var(--edge);stroke-width:4}
+.dial .rf{fill:none;stroke:var(--sun);stroke-width:4;stroke-linecap:round;
+  transition:stroke-dashoffset 1.1s var(--sp);
+  animation:dialGlow 3.2s ease-in-out infinite;will-change:filter}
+@keyframes dialGlow{0%,100%{filter:drop-shadow(0 0 3px rgba(234,179,8,.4))}50%{filter:drop-shadow(0 0 9px rgba(234,179,8,.8))}}
+.dial .core{z-index:1}
+.dial .num{font-size:52px;display:block}
+.dial .core .eyebrow{margin-top:2px;display:block}
+.dial::after{content:'';position:absolute;inset:12px;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(from -1deg,rgba(242,244,248,.14) 0 1.6deg,transparent 1.6deg 12deg);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));
+  mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px))}
+.chipRow{display:flex;justify-content:center;gap:8px;margin-top:12px;position:relative}
+.chipRow span{font-size:10.5px;letter-spacing:.08em;color:var(--mist);
+  border:1px solid var(--edge);border-radius:100px;padding:5px 11px;background:rgba(6,8,16,.4)}
+.chipRow span b{color:var(--sun);font-weight:600}
+
+.lens{position:relative;width:min(250px,68vw);aspect-ratio:1;margin:22px auto 18px;border-radius:50%;
+  background:radial-gradient(circle at 36% 28%,rgba(150,200,255,.06),transparent 55%),
+    radial-gradient(circle at 50% 50%,var(--well) 55%,var(--slate) 100%);
+  display:grid;place-items:center;
+  box-shadow:inset 0 0 70px rgba(0,0,0,.8),0 24px 60px -30px rgba(234,179,8,.25)}
+.lens::before{content:'';position:absolute;inset:-1.5px;border-radius:50%;padding:1.5px;
+  background:conic-gradient(from 215deg,var(--sun) 0deg,var(--coat-b) 70deg,var(--moon) 135deg,
+    var(--edge) 195deg,var(--edge) 320deg,var(--sun) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude;opacity:.55;
+  animation:coat 1.6s var(--sp) both}
+@keyframes coat{from{opacity:0;transform:rotate(-50deg)}to{opacity:.55;transform:none}}
+.lens-core{text-align:center;z-index:2}
+.lens-core .num{font-size:54px}
+.lens-core .eyebrow{margin-top:9px}
+
+/* ---------- כפתור-העל ---------- */
+.cta{position:relative;display:block;width:100%;margin-top:16px;padding:19px;border-radius:16px;
+  text-align:center;font-weight:700;font-size:17px;color:var(--sun-ink);overflow:hidden;isolation:isolate;
+  background:linear-gradient(180deg,var(--sun-hi),var(--sun) 60%);
+  box-shadow:0 16px 40px -16px rgba(234,179,8,.6);will-change:transform;
+  transition:transform .14s var(--sp);animation:breathe 2.8s ease-in-out infinite}
+.cta small{display:block;font-weight:400;font-size:10.5px;letter-spacing:.12em;margin-top:3px;opacity:.75}
+.cta:active{transform:scale(.977);animation:none}
+.cta.off{background:var(--slate);color:var(--mist);box-shadow:none;animation:none;border:1px solid var(--edge)}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.014)}}
+.cta::after{content:'';position:absolute;inset:0;border-radius:inherit;z-index:1;pointer-events:none;
+  padding:1.25px;opacity:var(--lit,.65);transition:opacity .3s;
+  background:conic-gradient(from calc(var(--a,220deg) - 90deg),
+    transparent 0deg,#fff 6deg,transparent 26deg,
+    transparent 154deg,#fff 186deg,transparent 206deg,transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude}
+.cta.off::after{--lit:.25;background:conic-gradient(from calc(var(--a,220deg) - 90deg),
+  transparent 0deg,var(--mist) 6deg,transparent 26deg,
+  transparent 154deg,var(--mist) 186deg,transparent 206deg,transparent 360deg)}
+
+/* ---------- שורות סשן דקות ---------- */
+.sess{position:relative;width:100%;display:flex;align-items:center;gap:12px;text-align:right;
+  border-radius:14px;border:1px solid var(--edge);padding:13px 15px;margin-bottom:9px;
+  background:var(--slate);transition:.15s var(--sp);
+  animation:rise .5s var(--sp) both;animation-delay:calc(var(--i,0)*70ms)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+.sess:active{transform:scale(.985)}
+.sess[data-done="1"]{opacity:.45}
+.orb{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:14px;flex-shrink:0;
+  animation:orbFloat 3.4s ease-in-out infinite}
+@keyframes orbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.morning .orb{color:var(--sun);background:rgba(234,179,8,.1)}
+.evening .orb{color:var(--moon);background:rgba(150,200,255,.1);animation-delay:1.7s}
+.sess-t{flex:1;min-width:0}
+.sess-t h3{font-size:15px;font-weight:700;font-family:var(--body)}
+.sess-t .meta{font-size:10px;letter-spacing:.06em;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.state{font-size:16px;color:var(--dim);flex-shrink:0}
+.morning .state{color:var(--sun)} .evening .state{color:var(--moon)}
+.sess[data-done="1"] .state{color:var(--good)}
+
+.month-wrap{margin-top:18px}
+.month{display:grid;grid-template-columns:repeat(10,1fr);gap:7px;margin-top:10px}
+.month i{aspect-ratio:1;border-radius:50%;background:var(--edge);opacity:0;
+  animation:mIn .45s var(--sp) forwards;animation-delay:calc(var(--m,0)*12ms)}
+@keyframes mIn{to{opacity:var(--mo,1)}}
+.month i.did{background:var(--sun);box-shadow:0 0 8px -2px rgba(234,179,8,.7)}
+.month i.missed{background:var(--edge2);--mo:.5}
+.month i.today{background:var(--well);box-shadow:0 0 0 1.5px var(--sun)}
+.month i.fut{--mo:.75}
+
+.tabbar{position:fixed;bottom:0;left:0;right:0;z-index:40;display:flex;justify-content:center;gap:4px;
+  padding:10px 18px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,rgba(6,8,16,0),rgba(6,8,16,.9) 30%);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.tabbar button{flex:1;max-width:150px;padding:9px 0 8px;border-radius:14px;min-height:52px;
+  font-size:10px;letter-spacing:.14em;color:var(--dim);font-weight:500;
+  display:flex;flex-direction:column;align-items:center;gap:4px;transition:.18s var(--sp)}
+.tabbar button svg{width:20px;height:20px;stroke:currentColor;fill:none;
+  stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button.on{color:var(--sun);background:rgba(234,179,8,.09);
+  box-shadow:0 0 0 1px rgba(234,179,8,.18) inset}
+
+.btn{position:relative;display:block;width:100%;padding:15px;border-radius:13px;text-align:center;
+  font-weight:600;font-size:14.5px;color:var(--sun-ink);overflow:hidden;isolation:isolate;
+  background:linear-gradient(180deg,var(--sun-hi),var(--sun) 60%);
+  transition:transform .14s var(--sp);box-shadow:0 12px 26px -14px rgba(234,179,8,.55)}
+.btn>span{position:relative;z-index:2}
+.btn::after{content:'';position:absolute;inset:0;border-radius:inherit;z-index:1;pointer-events:none;
+  padding:1.25px;opacity:var(--lit,.6);transition:opacity .3s;
+  background:conic-gradient(from calc(var(--a,220deg) - 90deg),
+    transparent 0deg,#fff 6deg,transparent 26deg,
+    transparent 154deg,#fff 186deg,transparent 206deg,transparent 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;mask-composite:exclude}
+.btn:active{transform:scale(.977)}
+.btn.ghost{background:var(--slate);color:var(--paper);font-weight:400;
+  border:1px solid var(--edge);box-shadow:none;--shine:var(--sun)}
+.btn.ghost::after{opacity:var(--lit,.35);
+  background:conic-gradient(from calc(var(--a,220deg) - 90deg),
+    transparent 0deg,var(--sun) 6deg,transparent 26deg,
+    transparent 154deg,var(--sun) 186deg,transparent 206deg,transparent 360deg)}
+.btn.sm{padding:11px;font-size:12.5px;border-radius:11px}
+.btn:disabled{opacity:.4}
+
+.stage{position:fixed;inset:0;background:var(--ink);z-index:50;display:flex;flex-direction:column;
+  overscroll-behavior:contain}
+.stage-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 10px;flex-shrink:0}
+.stage-bar .eyebrow{flex:1;text-align:right}
+.x{font-size:24px;color:var(--dim);line-height:1;min-width:44px;min-height:44px;display:grid;place-items:center}
+.skipb{font-size:11px;letter-spacing:.12em;color:var(--dim);padding:10px 14px;border:1px solid var(--edge);border-radius:100px;min-height:40px}
+.pbar{display:flex;gap:5px;margin:0 16px;height:3px}
+.pbar s{flex:1;background:var(--edge);border-radius:3px;overflow:hidden;display:block}
+.pbar s i{display:block;height:100%;background:var(--sun);width:0;transition:width .25s linear;
+  box-shadow:0 0 6px rgba(234,179,8,.6)}
+.stage-body{flex:1;position:relative;overflow:hidden}
+.stage-foot{padding:12px 16px calc(18px + env(safe-area-inset-bottom));flex-shrink:0}
+
+.pane{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+  padding:24px;text-align:center;overflow-y:auto;animation:fade .45s var(--sp)}
+@keyframes fade{from{opacity:0;transform:translateY(7px)}}
+.pane .lead{max-width:320px;margin:0 auto}
+.rules{text-align:right;margin:16px auto 0;max-width:320px;width:100%}
+.rules li{list-style:none;font-size:12.5px;color:var(--mist);line-height:1.55;padding:8px 0;
+  border-bottom:1px solid var(--edge);display:flex;gap:9px}
+.rules li b{color:var(--sun);font-weight:500;flex-shrink:0;min-width:58px}
+.big{font-size:60px;margin:4px 0}
+.count3{font-family:var(--display);font-weight:900;font-size:90px;color:var(--sun)}
+.note{font-size:11px;color:var(--mist);background:rgba(234,179,8,.06);
+  border:1px solid rgba(234,179,8,.2);border-radius:9px;padding:10px 12px;
+  line-height:1.6;margin-top:12px;text-align:right;max-width:320px;margin-inline:auto}
+.note b{color:var(--sun);font-weight:500}
+
+.wsplit{display:inline-block}
+.ch{display:inline-block;opacity:0;transform:translateY(.55em) rotate(2deg);
+  animation:chIn .6s var(--sp) forwards;animation-delay:var(--d,0s)}
+@keyframes chIn{to{opacity:1;transform:none}}
+.wsp{white-space:pre}
+
+#field{position:absolute;inset:0;touch-action:none}
+.dot{position:absolute;width:22px;height:22px;border-radius:50%;
+  background:radial-gradient(circle at 35% 32%,var(--sun-hi),var(--sun) 65%);
+  left:0;top:0;margin:-11px 0 0 -11px;
+  box-shadow:0 0 26px rgba(234,179,8,.6);will-change:transform}
+.fix{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--sun);
+  font-size:20px;pointer-events:none;z-index:3;text-shadow:0 0 12px rgba(234,179,8,.5)}
+
+.schulte{position:absolute;inset:0;display:grid;gap:5px;padding:12px;align-content:center;touch-action:manipulation}
+.sq{background:var(--slate);border:1px solid var(--edge);border-radius:10px;aspect-ratio:1;
+  display:grid;place-items:center;font-family:var(--display);font-weight:700;
+  font-size:clamp(15px,4.6vw,24px);transition:background .12s,border-color .12s}
+.sq.hit{background:rgba(234,179,8,.1);border-color:var(--sun-dim);color:var(--sun)}
+.sq.miss{border-color:var(--bad);animation:shk .3s}
+@keyframes shk{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+
+.lc{position:absolute;inset:0;display:grid;place-items:center;user-select:none;-webkit-user-select:none}
+.stage-body{touch-action:manipulation}
+.stage-body.swipe{touch-action:none}
+.swipeHint{position:absolute;bottom:14px;left:0;right:0;text-align:center;font-size:11px;color:var(--dim);pointer-events:none}
+.arrows{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:250px;margin:0 auto}
+.arrows button{background:var(--slate);border:1px solid var(--edge);border-radius:12px;
+  padding:16px 0;font-size:21px;color:var(--mist);transition:.12s}
+.arrows button:active{background:var(--edge);color:var(--sun);transform:scale(.96)}
+.arrows .sp{visibility:hidden}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;max-width:290px;margin:0 auto}
+.pad button{background:var(--slate);border:1px solid var(--edge);border-radius:11px;padding:16px 0;
+  font-family:var(--display);font-weight:700;font-size:21px;transition:.12s}
+.pad button:active{transform:scale(.96)}
+.flash{position:absolute;font-family:var(--display);font-weight:900;color:var(--paper);
+  transform:translate(-50%,-50%)}
+
+.nf{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:22px}
+.nf-mode{font-family:var(--display);font-weight:900;font-size:38px;margin-bottom:12px}
+.nf-mode.far{color:var(--moon)} .nf-mode.near{color:var(--sun)}
+.nf-count{font-size:60px;font-weight:200;color:var(--mist)}
+
+.cardsim{background:linear-gradient(135deg,#232D3F,#101725);border:1px solid var(--edge2);
+  border-radius:9px;aspect-ratio:85.6/53.98;margin:0 auto;position:relative;
+  box-shadow:0 12px 34px -14px rgba(0,0,0,.8)}
+.cardsim::after{content:'85.6 מ״מ';position:absolute;bottom:7px;right:9px;font-size:9px;
+  color:var(--dim);letter-spacing:.1em}
+.cardsim i{position:absolute;top:11px;right:10px;width:26px;height:19px;border-radius:3px;
+  background:linear-gradient(135deg,#D3B355,#8A6E2A)}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--edge);
+  border-radius:3px;margin:16px 0 6px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;
+  border-radius:50%;background:radial-gradient(circle at 36% 32%,var(--sun-hi),var(--sun) 70%);
+  cursor:pointer;border:3px solid var(--ink)}
+input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--sun);
+  border:3px solid var(--ink)}
+
+.mrow{padding:14px 0;border-bottom:1px solid var(--edge)}
+.mhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.mhead b{font-family:var(--display);font-size:16px;font-weight:700;display:block}
+.mhead .tiny{display:block;margin-top:2px}
+.mval{font-family:var(--display);font-weight:900;font-size:24px;white-space:nowrap}
+.chart{display:block;width:100%;height:110px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--edge);font-size:13px}
+.kv span:last-child{color:var(--paper);font-weight:400;text-align:left}
+.kv span:first-child{color:var(--mist);flex-shrink:0}
+.up{color:var(--good)} .down{color:var(--bad)} .flat{color:var(--dim)}
+.delta{font-size:12.5px;margin-top:6px}
+.hint{font-size:11px;color:var(--dim);line-height:1.7;margin-top:20px;padding-top:14px;border-top:1px solid var(--edge)}
+
+@media print{
+  body{background:#fff;color:#000}
+  .noprint,.tabbar,.rays{display:none!important}
+  .kv,.stat{border-color:#ccc}
+  .kv span:first-child,.lead,.tiny{color:#444}
+  .note{background:#f7f2e8;color:#333}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="splash" aria-hidden="true">
+  <div class="mark">
+    <svg viewBox="0 0 120 120">
+      <circle class="mk-t" cx="60" cy="60" r="52"/>
+      <circle class="mk-c" cx="60" cy="60" r="52"/>
+      <circle class="mk-i" cx="60" cy="60" r="30"/>
+      <circle class="mk-p" cx="60" cy="60" r="4.5"/>
+    </svg>
+  </div>
+  <div class="wordmark">TRACKX</div>
+  <p class="tiny">מכשיר <span class="flipword" id="fwSplash"></span></p>
+  <div class="sline"><i></i></div>
+</div>
+<div class="rays" aria-hidden="true"><canvas id="raysGl"></canvas></div>
+
+<div class="wrap hidden" id="onb"></div>
+
+<div class="wrap hidden" id="home">
+  <header class="top">
+    <div>
+      <span class="eyebrow" id="phaseLbl">TrackX</span>
+      <h1 id="greet" style="margin-top:5px">היום</h1>
+    </div>
+    <span class="tiny" id="dateLn"></span>
+  </header>
+  <div class="tilt3d" id="heroTilt">
+  <section class="hero tilt3d-body">
+    <div class="t3d-item" style="--tz:88px">
+      <div class="dial" aria-label="התקדמות בפרוטוקול">
+        <svg viewBox="0 0 100 100">
+          <circle class="rt" cx="50" cy="50" r="44"/>
+          <circle class="rf" id="ring" cx="50" cy="50" r="44" stroke-dasharray="276" stroke-dashoffset="276"/>
+        </svg>
+        <div class="core"><b class="num" id="dayN">1</b><span class="eyebrow">מתוך 30</span></div>
+      </div>
+    </div>
+    <div class="t3d-item" style="--tz:26px">
+      <div class="chipRow"><span id="streakChip"></span><span id="phaseChip"></span></div>
+    </div>
+    <div class="t3d-item" style="--tz:22px"><button class="cta" id="cta"></button></div>
+  </section>
+  </div>
+  <p class="lead" id="sub" style="margin-top:14px"></p>
+  <div id="sess" style="margin-top:12px"></div>
+  <div class="hint" id="homeHint"></div>
+</div>
+
+<div class="wrap hidden" id="stats">
+  <span class="eyebrow">מדידות</span>
+  <h1 style="margin-top:18px">המספרים</h1>
+  <p class="lead" style="margin-top:7px">מכויל למסך ולמרחק שלך. שלוש מדידות אמיתיות — והשאר, בכנות, לא ניתן למדוד.</p>
+  <div class="month-wrap">
+    <span class="eyebrow">30 ימים · <span id="monthPh"></span></span>
+    <div class="month" id="month"></div>
+  </div>
+  <div style="margin-top:22px" id="statList"></div>
+  <div class="hint" id="statHint"></div>
+  <div style="margin-top:22px">
+    <button class="btn ghost sm" id="recal">כיול מחדש</button>
+    <button class="btn ghost sm" id="reset" style="margin-top:8px;color:var(--bad)">מחיקת כל הנתונים</button>
+  </div>
+</div>
+
+<div class="wrap hidden" id="rep">
+  <span class="eyebrow noprint">דוח</span>
+  <div id="repBody"></div>
+  <button class="btn ghost sm noprint" id="print" style="margin-top:24px">הדפסה / שמירה כ-PDF</button>
+</div>
+
+<nav class="tabbar hidden" id="tabbar">
+  <button data-go="home" class="on">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.6"/></svg>
+    היום</button>
+  <button data-go="stats">
+    <svg viewBox="0 0 24 24"><path d="M3.5 17l4.5-5 3.5 3 4-6 5 4"/></svg>
+    מדידות</button>
+  <button data-go="rep">
+    <svg viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 12h5M10 15.5h5"/></svg>
+    דוח</button>
+</nav>
+
+<div class="stage hidden" id="stage">
+  <div class="stage-bar"><button class="x" id="quit">×</button><button class="skipb" id="skipBar">דלג ⤼</button><span class="eyebrow" id="stageLbl"></span></div>
+  <div class="pbar" id="pbar"></div>
+  <div class="stage-body" id="body"></div>
+  <div class="stage-foot" id="foot"></div>
+</div>
+
+<script>
+/* ============================================================
+   TRACKX v2 — מדידה מכוילת
+   כרטיס ISO/IEC 7810 ID-1 (85.6mm) + מרחק צפייה
+   → מדידות ביחידות אמיתיות: מעלות ראייה, logCS
+   ============================================================ */
+const KEY='trackx-v2', LEGACY_KEY='acuity-v2', CARD_MM=85.6, DAYS=30;
+/* רגישות לניגודיות: רקע בהיר, טבעת כהה בגודל קבוע 2°.
+   הניגודיות היא המשתנה — לא הגודל. גודל לא עובד בטלפון:
+   טבעת 20/20 במרחק 40 ס"מ יוצאת 2px, והפער בתוכה 0.4px. */
+const CS_BG=200, CS_RING_ARCMIN=120, CS_CEIL=+Math.log10(CS_BG).toFixed(2);
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const iso=d=>d.toISOString().slice(0,10);
+const today=()=>iso(new Date());
+
+let mem=null;
+const fresh=()=>({v:2,onboarded:false,cal:{pxmm:null,dist:40},start:null,
+  levels:{schulte:1,pursuit:1},history:[],days:{},streak:0,last:null,
+  baseline:null,retest:null,seen:{},conds:null,voice:0});
+const store={
+  async get(){
+    if(mem) return mem;
+    try{ if(window.storage){const r=await window.storage.get(KEY); if(r&&r.value){mem=JSON.parse(r.value);return mem}} }catch(e){}
+    try{ const v=localStorage.getItem(KEY); if(v){mem=JSON.parse(v);return mem} }catch(e){}
+    /* הגירה שקטה: משתמש קיים תחת השם הישן — מעתיקים במקום לאבד נתונים */
+    try{ if(window.storage){const r=await window.storage.get(LEGACY_KEY); if(r&&r.value){mem=JSON.parse(r.value); await this.set(mem); return mem}} }catch(e){}
+    try{ const v=localStorage.getItem(LEGACY_KEY); if(v){mem=JSON.parse(v); await this.set(mem); return mem} }catch(e){}
+    mem=fresh(); return mem;
+  },
+  async set(d){ mem=d;
+    try{ if(window.storage){await window.storage.set(KEY,JSON.stringify(d));return} }catch(e){}
+    try{ localStorage.setItem(KEY,JSON.stringify(d)) }catch(e){}
+  }
+};
+let D=null;
+
+/* ---------- אופטיקה ---------- */
+const distMM  = ()=> D.cal.dist*10;
+const pxForArcmin = am => 2*distMM()*Math.tan((am/60)*Math.PI/360) * D.cal.pxmm;
+const arcminForPx = px => 2*Math.atan((px/D.cal.pxmm)/(2*distMM()))*180/Math.PI*60;
+const maxEccDeg = ()=>{
+  if(!D.cal.pxmm) return 0;
+  const half=Math.min(window.innerWidth,window.innerHeight)/2 - 30;
+  return arcminForPx(half)/60;
+};
+const periphDeg = ()=> Math.max(3,Math.min(8,+(maxEccDeg()*0.75).toFixed(1)));
+
+/* ---------- מדרגות 1-up/2-down → סף 70.7% ---------- */
+class Stair{
+  constructor(v,step,min,max,invert){
+    this.v=v;this.step=step;this.min=min;this.max=max;this.inv=invert;
+    this.dir=0;this.rev=[];this.ok=0;this.n=0;this.halved=false;
+  }
+  hard(){ this.v = this.inv ? Math.max(this.min,this.v-this.step) : Math.min(this.max,this.v+this.step) }
+  easy(){ this.v = this.inv ? Math.min(this.max,this.v+this.step) : Math.max(this.min,this.v-this.step) }
+  record(c){
+    this.n++;
+    if(c){ this.ok++;
+      if(this.ok>=2){ this.ok=0; if(this.dir===1) this.rev.push(this.v); this.dir=-1; this.hard();
+        if(!this.halved&&this.rev.length>=2){ this.halved=true; this.step=this.step/2 } }
+    } else { this.ok=0; if(this.dir===-1) this.rev.push(this.v); this.dir=1; this.easy();
+      if(!this.halved&&this.rev.length>=2){ this.halved=true; this.step=this.step/2 } }
+  }
+  get done(){ return this.rev.length>=6 || this.n>=32 }
+  get threshold(){ const r=this.rev.slice(-4);
+    return r.length? r.reduce((a,b)=>a+b,0)/r.length : this.v }
+}
+
+/* ---------- פרוטוקול ---------- */
+function dayNum(){
+  if(!D.start) return 1;
+  const a=new Date(D.start+'T00:00:00'), b=new Date(today()+'T00:00:00');
+  return Math.max(1,Math.min(DAYS, Math.floor((b-a)/864e5)+1));
+}
+function phaseOf(d){
+  if(d===1) return {k:'base',n:'מדידת בסיס',i:0};
+  if(d<=7)  return {k:'adapt',n:'התאמה',i:1};
+  if(d<=21) return {k:'load',n:'עומס',i:2};
+  if(d<DAYS)return {k:'cons',n:'גיבוש',i:3};
+  return {k:'retest',n:'מדידה חוזרת',i:4};
+}
+function planFor(d){
+  const p=phaseOf(d);
+  const pmEasy={n:'ערב · ריענון',t:'5 דק׳',d:['nearfar','pursuitSlow','blink']};
+  const pm=(p.k==='base'||p.k==='adapt')? pmEasy
+    : {n:'ערב · ריענון',t:'6 דק׳',d:['flex','pursuitSlow','blink']};
+  if(p.k==='base')   return {am:{n:'מדידת בסיס',t:'10 דק׳',d:['landolt','schulte','periph','pursuit']},pm};
+  if(p.k==='retest') return {am:{n:'מדידה חוזרת',t:'10 דק׳',d:['landolt','schulte','periph','pursuit']},pm};
+  const am={n:'בוקר · אימון',t:p.k==='adapt'?'5 דק׳':'7 דק׳',
+    d:p.k==='adapt'?['pursuit','saccades','schulte']:['pursuit','saccades','schulte','periph']};
+  if(d%7===0){ am.d.unshift('landolt'); am.t='9 דק׳' }
+  return {am,pm};
+}
+const DRILL_NAMES={pursuit:'מעקב חלק',pursuitSlow:'מעקב רגוע',schulte:'סריקה',
+  periph:'היקפי',landolt:'ניגודיות',nearfar:'קרוב · רחוק',saccades:'קפיצות מבט',blink:'מצמוץ והרפיה',flex:'גמישות מיקוד'};
+
+/* ============================================================
+   אונבורדינג
+   ============================================================ */
+let obStep=0, calPx=300;
+function onb(){
+  $$('.wrap').forEach(e=>e.classList.add('hidden'));
+  $('#stage').classList.add('hidden');
+  $('#tabbar').classList.add('hidden');
+  $('#onb').classList.remove('hidden');
+  [obIntro,obCard,obDist,obReady][obStep]();
+  wrapBtns($('#onb'));
+  splitIn($('#onb h1'));
+  window.scrollTo(0,0);
+}
+function obIntro(){
+  $('#onb').innerHTML=`
+    <div class="tilt3d" id="introTilt" style="margin-top:26px">
+      <div class="tilt3d-body">
+        <div class="t3d-item" style="--tz:22px"><span class="eyebrow">TrackX</span></div>
+        <div class="t3d-item" style="--tz:64px"><h1 style="margin-top:10px">מכשיר, לא משחק.</h1></div>
+        <div class="t3d-item" style="--tz:96px">
+          <div class="lens" style="margin:20px auto 4px">
+            <div class="lens-core"><div class="num" style="font-size:44px">T</div>
+            <div class="eyebrow" style="margin-top:6px">TrackX</div></div>
+          </div>
+        </div>
+        <div class="t3d-item" style="--tz:40px">
+          <p class="lead" style="margin-top:4px">רוב אפליקציות אימון העיניים מודדות פיקסלים וקוראות לזה מדע. כאן נכייל את המסך שלך מול חפץ פיזי, ומאותו רגע כל מדידה תהיה ביחידות אמיתיות — מעלות ראייה ו-logCS, אותן יחידות שאופטומטריסט משתמש בהן.</p>
+        </div>
+        <div class="t3d-item" style="--tz:16px">
+          <div class="note" style="margin-top:16px"><b>מה שלא נבטיח.</b> אין עדות מדעית טובה שאימון עיניים משפר ראייה בעולם האמיתי. מה שיש כאן: מדידה כנה, פרוטוקול מובנה, ומעקב אחרי מגמה. זה לא תחליף לבדיקת עיניים.</div>
+        </div>
+        <div class="t3d-item" style="--tz:34px"><button class="btn" style="margin-top:20px" id="ob1">כיול</button></div>
+      </div>
+    </div>`;
+  wrapBtns($('#onb'));
+  Tilt.start($('#introTilt'));
+  $('#ob1').onclick=()=>{ Tilt.stop(); obNext() };
+}
+function obCard(){
+  if(D.cal.pxmm) calPx=Math.round(D.cal.pxmm*CARD_MM);
+  const maxW=Math.min(460,window.innerWidth-44);
+  if(calPx>maxW) calPx=maxW;
+  $('#onb').innerHTML=`
+    <span class="eyebrow">שלב 1 מתוך 2 · כיול מסך</span>
+    <h1 style="margin-top:14px">הנח כרטיס על המסך</h1>
+    <p class="lead" style="margin-top:10px">כל כרטיס אשראי, רישיון נהיגה או תעודת זהות. כולם בתקן ISO/IEC 7810 — רוחב 85.6 מ״מ, בדיוק. התאם את המלבן עד שהוא תואם לכרטיס.</p>
+    <div style="margin-top:26px"><div class="cardsim" id="cs" style="width:${calPx}px"><i></i></div></div>
+    <input type="range" id="calR" min="120" max="${maxW}" value="${calPx}">
+    <div style="display:flex;justify-content:space-between">
+      <span class="tiny" id="calOut"></span><span class="tiny">החלק להתאמה</span>
+    </div>
+    <button class="btn" style="margin-top:24px" id="ob2">תואם</button>`;
+  const r=$('#calR');
+  const upd=()=>{ calPx=+r.value; $('#cs').style.width=calPx+'px';
+    $('#calOut').textContent=(calPx/CARD_MM).toFixed(2)+' פיקסלים למ״מ' };
+  r.oninput=upd; upd();
+  $('#ob2').onclick=obNext;
+}
+function obDist(){
+  $('#onb').innerHTML=`
+    <span class="eyebrow">שלב 2 מתוך 2 · מרחק צפייה</span>
+    <h1 style="margin-top:14px">כמה רחוק המסך?</h1>
+    <p class="lead" style="margin-top:10px">זה הנתון שהופך פיקסלים למעלות. מדוד פעם אחת עם סרט מדידה — ניחוש כאן מעוות כל מדידה אחרי. החזק את הטלפון איך שאתה מחזיק אותו בפועל.</p>
+    <div style="text-align:center;margin-top:34px">
+      <div class="num" id="dOut" style="font-size:64px;color:var(--coat)">${D.cal.dist}</div>
+      <div class="eyebrow" style="margin-top:8px">סנטימטרים</div>
+    </div>
+    <input type="range" id="dR" min="20" max="75" value="${D.cal.dist}" style="margin-top:20px">
+    <p class="tiny" id="dHint" style="text-align:center"></p>
+    <button class="btn" style="margin-top:24px" id="ob3">קבע</button>`;
+  const r=$('#dR');
+  const upd=()=>{ D.cal.dist=+r.value; $('#dOut').textContent=r.value;
+    $('#dHint').textContent = r.value<28?'קרוב מאוד — נפוץ, אבל מעייף':r.value<45?'טווח אחיזה טיפוסי':'מרחק שולחני' };
+  r.oninput=upd; upd();
+  $('#ob3').onclick=obNext;
+}
+function obReady(){
+  D.cal.pxmm=calPx/CARD_MM;
+  const me=maxEccDeg();
+  $('#onb').innerHTML=`
+    <span class="eyebrow on">כויל</span>
+    <h1 style="margin-top:14px">המכשיר מוכן</h1>
+    <div style="margin-top:22px">
+      <div class="kv"><span>רזולוציה</span><span>${D.cal.pxmm.toFixed(2)} px/mm</span></div>
+      <div class="kv"><span>מרחק צפייה</span><span>${D.cal.dist} ס״מ</span></div>
+      <div class="kv"><span>פיקסל אחד</span><span>${arcminForPx(1).toFixed(2)}′ קשת</span></div>
+      <div class="kv"><span>גבול היקפי במסך</span><span>${me.toFixed(1)}°</span></div>
+      <div class="kv"><span>תקרת ניגודיות</span><span>logCS ${CS_CEIL}</span></div>
+    </div>
+    <p class="note" style="margin-top:18px"><b>קבע בהירות מסך.</b> כבה בהירות אוטומטית ומדוד תמיד באותה תאורה. רגישות לניגודיות תלויה בבהירות — מסך שמשנה בהירות לבד יזייף לך את כל המדידות.</p>
+    <p class="note" style="margin-top:10px"><b>מגבלה אמיתית.</b> המסך מגיע עד ${me.toFixed(1)}° מהמרכז. ראייה היקפית אנושית מגיעה לכ-100°, אז נבדוק את הטווח הקרוב בלבד. זו פיזיקה, לא באג — וכל אפליקציה שטוענת אחרת בטלפון, משקרת.</p>
+    <p class="lead" style="margin-top:16px">היום הראשון הוא מדידת בסיס. בלי אימון — רק מספרים, שכל השאר יימדד מולם.</p>
+    <button class="btn" style="margin-top:22px" id="ob4">התחל · יום 1</button>`;
+  $('#ob4').onclick=obDone;
+}
+function obNext(){ obStep++; onb() }
+async function obDone(){
+  D.onboarded=true; if(!D.start) D.start=today();
+  await store.set(D); $('#onb').classList.add('hidden'); go('home');
+}
+
+/* ============================================================
+   ניווט
+   ============================================================ */
+let curTab=null;
+function go(id){
+  if(curTab==='home'&&id!=='home') Tilt.stop();
+  $$('.wrap').forEach(e=>{e.classList.add('hidden');e.classList.remove('enter')});
+  const pg=$('#'+id);
+  pg.classList.remove('hidden');
+  [...pg.children].forEach((el,i)=>el.style.setProperty('--pi',i));
+  requestAnimationFrame(()=>pg.classList.add('enter'));
+  curTab=id;
+  $('#tabbar').classList.remove('hidden');
+  $$('#tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.go===id));
+  if(id==='home'){ renderHome(); Tilt.start($('#heroTilt')) }
+  if(id==='stats') renderStats();
+  if(id==='rep') renderRep();
+  wrapBtns($('#'+id));
+  window.scrollTo(0,0);
+}
+$$('#tabbar button').forEach(b=>b.onclick=()=>go(b.dataset.go));
+$('#print').onclick=()=>window.print();
+$('#recal').onclick=()=>{ obStep=1; onb() };
+$('#reset').onclick=async()=>{ if(confirm('למחוק הכל, כולל הכיול ומדידת הבסיס?')){
+  mem=null; await store.set(fresh()); D=await store.get(); obStep=0; onb() } };
+
+/* ============================================================
+   בית
+   ============================================================ */
+function renderHome(){
+  const d=dayNum(), p=phaseOf(d), plan=planFor(d), done=D.days[today()]||[];
+  const keys=Object.keys(plan), h=new Date().getHours();
+  const allDone=keys.every(k=>done.includes(k));
+  tickUp($('#dayN'),String(d));
+  $('#ring').style.strokeDashoffset=276-(276*(d/DAYS));
+  $('#phaseLbl').textContent='TrackX';
+  $('#dateLn').textContent=new Date().toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});
+  $('#streakChip').innerHTML=`רצף <b>${D.streak||0}</b> ימים`;
+  $('#phaseChip').textContent='שלב '+p.n;
+  setSplit($('#greet'), allDone?'סיימת להיום':(h<12?'בוקר טוב':h<18?'צהריים טובים':'ערב טוב'));
+  const phaseTxt={base:'מודדים איפה אתה עומד — ואז מתאמנים כרגיל.',
+    retest:'אותה בטריה כמו ביום 1. עכשיו נדע.',
+    adapt:'נפח נמוך בכוונה. המערכת מתרגלת.',
+    load:'עומס מלא. כאן קורה השינוי, אם הוא קורה.',
+    cons:'מקבעים. בלי להעלות עומס.'}[p.k];
+  $('#sub').innerHTML = allDone
+    ? 'הכל הושלם. קצר ותכוף מנצח ארוך ומתיש — אין ערך בעוד סבב היום.'
+    : phaseTxt;
+  const nextKey = keys.find(k=>!done.includes(k));
+  const cta=$('#cta');
+  if(nextKey){
+    cta.className='cta';
+    cta.innerHTML=`<span>התחל · ${plan[nextKey].n}</span><small>${plan[nextKey].t} · ${plan[nextKey].d.map(x=>DRILL_NAMES[x]).join(' · ')}</small>`;
+    cta.onclick=()=>runSession(nextKey,plan[nextKey]);
+  } else {
+    cta.className='cta off';
+    cta.innerHTML=`<span>✓ הושלם להיום</span><small>נתראה מחר</small>`;
+    cta.onclick=null;
+  }
+  $('#sess').innerHTML=keys.map((k,i)=>{
+    const sn=plan[k], isDone=done.includes(k), tone=k==='am'?'morning':'evening';
+    return `<button class="sess ${tone}" data-s="${k}" data-done="${isDone?1:0}" style="--i:${i}">
+      <span class="orb">${k==='am'?'☀':'☾'}</span>
+      <div class="sess-t"><h3>${sn.n}</h3><span class="meta">${sn.t} · ${sn.d.map(x=>DRILL_NAMES[x]).join(' · ')}</span></div>
+      <span class="state">${isDone?'✓':'‹'}</span>
+    </button>`}).join('');
+  $$('.sess[data-s]').forEach(c=>c.onclick=()=>runSession(c.dataset.s,plan[c.dataset.s]));
+  $('#homeHint').innerHTML = !D.baseline
+    ? 'מדידת הבסיס היא הדבר היחיד שהופך את כל המספרים הבאים למשמעותיים. אל תדלג עליה.'
+    : d>=DAYS ? 'היום האחרון. המדידה החוזרת משתמשת באותה בטריה בדיוק — לכן ההשוואה תקפה.'
+    : `${D.history.length} מדידות · רצף ${D.streak} ימים · ניגודיות נמדדת פעם בשבוע בלבד, כי מדידה יומית מודדת בעיקר רעש.`;
+}
+
+/* ============================================================
+   מנוע הסשן
+   ============================================================ */
+let queue=[],qi=0,curKey=null,curDrill=null,cleanup=null;
+const RUNS={landolt:()=>lcPre(),schulte:()=>schulteRun(),periph:()=>periphRun(),
+  pursuit:()=>pursuitRun(60,true),pursuitSlow:()=>pursuitRun(45,false),nearfar:()=>nfRun(),
+  saccades:()=>sacRun(),blink:()=>blinkRun(),flex:()=>flexRun()};
+const HINTS={landolt:'רגע לפני: אימות תנאים',schulte:'מבט על הצלב · מצא 1,2,3...',
+  periph:'מבט נעול על הצלב',pursuit:'רק העיניים · הראש נייח',
+  pursuitSlow:'מעקב רגוע · לשחרר',nearfar:'רטט כפול = רחוק · בודד = קרוב',
+  saccades:'קפוץ בין הנקודות · ראש נייח',blink:'מצמץ עם המעגל',
+  flex:'קרוב חד? הקש · רחוק חד? הקש'};
+const stage=$('#stage'),body=$('#body'),foot=$('#foot');
+function runSession(k,plan){
+  Rays.pause(); Light.resume(); Tilt.stop();
+  curKey=k; queue=plan.d.slice(); qi=0;
+  $('#pbar').innerHTML=queue.map(()=>'<s><i></i></s>').join('');
+  stage.classList.remove('hidden'); $('#stageLbl').textContent=plan.n; next();
+}
+$('#quit').onclick=()=>closeStage();
+$('#skipBar').onclick=()=>{ if(qi<queue.length) advance() };
+function closeStage(){ if(cleanup){cleanup();cleanup=null}
+  Rays.resume();
+  stage.classList.add('hidden');
+  if(curTab==='home') Tilt.start($('#heroTilt'));
+  body.innerHTML=''; foot.innerHTML=''; renderHome() }
+function prog(p){
+  const n=queue.length||1, x=Math.max(0,Math.min(1,p))*n;
+  $$('#pbar s i').forEach((el,i)=>{
+    el.style.width=(Math.max(0,Math.min(1,x-i))*100)+'%';
+  });
+}
+function next(){ if(cleanup){cleanup();cleanup=null}
+  if(qi>=queue.length) return finish();
+  prog(qi/queue.length);
+  curDrill=queue[qi];
+  if(D.seen[curDrill]) quickStart(curDrill);
+  else DRILLS[curDrill].intro();
+}
+/* מהפעם השנייה: תזכורת של שנייה וישר פנימה */
+function quickStart(k){
+  body.innerHTML=`<div class="pane"><h2>${DRILL_NAMES[k]}</h2>
+    <p class="lead" style="margin-top:8px">${HINTS[k]}</p></div>`;
+  foot.innerHTML='';
+  const t=setTimeout(()=>RUNS[k](),1100);
+  cleanup=()=>clearTimeout(t);
+}
+function advance(){ qi++; next() }
+async function finish(){
+  prog(1);
+  const t=today(); D.days[t]=D.days[t]||[];
+  if(!D.days[t].includes(curKey)){ D.days[t].push(curKey);
+    if(D.last!==t){ const y=iso(new Date(Date.now()-864e5));
+      D.streak=(D.last===y)?D.streak+1:1; D.last=t } }
+  const d=dayNum();
+  if(d===1 && !D.baseline) D.baseline=snapshot();
+  if(d>=DAYS && !D.retest && curKey==='am') D.retest=snapshot();
+  await store.set(D);
+  const isB=d===1, isR=d>=DAYS;
+  body.innerHTML=`<div class="pane"><span class="eyebrow on">${isB?'בסיס נקבע':isR?'מדידה חוזרת הושלמה':'הושלם'}</span>
+    <div class="num big" style="color:var(--coat)">✓</div>
+    <p class="lead" style="margin-top:6px">${isB?'זה המספר שכל השאר יימדד מולו. תראה אותו שוב ביום 30.':
+      isR?'הדוח מוכן. הוא כולל גם את מה שלא השתפר.':
+      'נרשם. השינוי, אם יש, נראה על פני שבועות — לא סבבים.'}</p></div>`;
+  foot.innerHTML=`<button class="btn" id="fin">${isR?'צפה בדוח':'סיום'}</button>`;
+  wrapBtns(foot);
+  $('#fin').onclick=()=>{ closeStage(); if(isR) go('rep') };
+}
+function snapshot(){
+  const g=m=>{const h=D.history.filter(x=>x.m===m);return h.length?h[h.length-1].s:null};
+  return {date:today(),logmar:g('landolt'),schulte:g('schulte'),periph:g('periph'),flex:g('flex')};
+}
+function intro({title,lead,rules,cta,note},run){
+  body.innerHTML=`<div class="pane"><span class="eyebrow">${qi+1} / ${queue.length}</span>
+    <h2 style="margin-top:8px">${title}</h2><p class="lead" style="margin-top:8px">${lead}</p>
+    <ul class="rules">${rules.map(r=>`<li><b>${r[0]}</b><span>${r[1]}</span></li>`).join('')}</ul>
+    ${note?`<p class="note">${note}</p>`:''}</div>`;
+  splitIn($('.pane h2'));
+  foot.innerHTML=`<button class="btn" id="go">${cta}</button>`;
+  wrapBtns(foot);
+  $('#go').onclick=()=>{ D.seen[curDrill]=1; store.set(D); run() };
+}
+function result({label,value,unit,sub,delta,msg}){
+  body.innerHTML=`<div class="pane"><span class="eyebrow">${label}</span>
+    <div class="num big"><span id="rv">${value}</span><span style="font-size:18px;font-weight:400;color:var(--dim)"> ${unit}</span></div>
+    ${sub?`<div class="tiny">${sub}</div>`:''}
+    ${delta?`<div class="delta ${delta.k}">${delta.t}</div>`:''}
+    <p class="lead" style="margin-top:12px">${msg}</p></div>`;
+  tickUp($('#rv'),value);
+  buzz([12,60,12]);
+  $('.pane').onclick=advance;
+  foot.innerHTML=`<button class="btn" id="nx">המשך</button>`;
+  wrapBtns(foot);
+  $('#nx').onclick=advance;
+}
+async function log(m,s,l){ D.history.push({d:today(),m,s,l:l||0});
+  if(D.history.length>600) D.history=D.history.slice(-600); await store.set(D) }
+const prev=m=>{const h=D.history.filter(x=>x.m===m);return h.length>1?h[h.length-2]:null};
+
+/* ---------- תחושת מכשיר: רטט + ספרות ---------- */
+const buzz=ms=>{ try{ navigator.vibrate&&navigator.vibrate(ms) }catch(e){} };
+document.addEventListener('pointerdown',e=>{
+  const t=e.target.closest('.btn,.sq,.arrows button,.pad button,.sess');
+  if(!t) return;
+  buzz(6);
+  Light.flare(t);
+},{passive:true});
+/* תוויות הכפתורים מעל שכבת הברק — נקודתי, בלי לסרוק את ה-DOM */
+function wrapBtns(root){
+  (root||document).querySelectorAll('.btn').forEach(b=>{
+    if(!b.firstElementChild || b.firstElementChild.tagName!=='SPAN'){
+      const t=b.textContent; b.textContent='';
+      const sp=document.createElement('span'); sp.textContent=t; b.appendChild(sp);
+    }
+  });
+}
+const noMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- מנוע אור ספקולרי ----------
+   זווית האור נשלטת בגיירוסקופ; בלעדיו — סריקה איטית.
+   כותב משתנה CSS יחיד על :root, אפס עבודה פר-כפתור. */
+const Light=(()=>{
+  const root=document.documentElement;
+  let ang=220, target=220, tilt=false, raf=0, last=performance.now(), paused=false;
+  const norm=a=>((a%360)+360)%360;
+  function onTilt(e){
+    if(e.gamma==null&&e.beta==null) return;
+    tilt=true;
+    // gamma: הטיה שמאל-ימין, beta: קדימה-אחורה → זווית אור
+    target=norm(220 + (e.gamma||0)*1.6 - ((e.beta||0)-45)*0.8);
+  }
+  function loop(now){
+    raf=requestAnimationFrame(loop);
+    const dt=Math.min((now-last)/1000,.05); last=now;
+    if(paused||document.hidden) return;
+    if(!tilt) target=norm(target + 14*dt);          // סריקה איטית כברירת מחדל
+    let diff=((target-ang+540)%360)-180;
+    const nx=norm(ang + diff*(1-Math.exp(-dt*6)));
+    if(Math.abs(nx-ang)<0.05) return;               // אין שינוי → אין כתיבה ל-DOM
+    ang=nx;
+    root.style.setProperty('--a',ang.toFixed(1)+'deg');
+  }
+  return {
+    start(){
+      if(noMotion){ root.style.setProperty('--a','220deg'); return }
+      window.addEventListener('deviceorientation',onTilt,{passive:true});
+      raf=requestAnimationFrame(loop);
+    },
+    // iOS דורש אישור מפורש, ורק מתוך מחווה של המשתמש
+    async ask(){
+      try{
+        const A=window.DeviceOrientationEvent;
+        if(A&&typeof A.requestPermission==='function'){
+          const r=await A.requestPermission();
+          return r==='granted';
+        }
+      }catch(e){}
+      return false;
+    },
+    pause(){paused=true}, resume(){paused=false; last=performance.now()},
+    flare(el){
+      if(noMotion||!el) return;
+      el.style.setProperty('--lit','1');
+      setTimeout(()=>el.style.removeProperty('--lit'),380);
+    }
+  };
+})();
+Light.start();
+
+/* ---------- SideRays: הפורט הוונילה של השיידר המקורי ---------- */
+const Rays=(()=>{
+  const cv=document.getElementById('raysGl');
+  let ctx=null,raf=0,paused=false,W=0,H=0,last=performance.now();
+  const beams=[];
+  const PALETTE=[
+    {r:234,g:179,b:8},    // ענבר — שמש
+    {r:150,g:200,b:255}   // תכלת — ירח
+  ];
+  function spawn(i){
+    const c=PALETTE[(Math.random()*PALETTE.length)|0];
+    beams[i]={
+      x: Math.random()*W,
+      y: -80-Math.random()*260,
+      len: 90+Math.random()*90,
+      v: 90+Math.random()*70,
+      c, delay: Math.random()*2.2,
+      state:'fall', stateT:0, alpha:1, burstPts:null
+    };
+  }
+  function initBeams(n){ beams.length=0; for(let i=0;i<n;i++){ spawn(i); beams[i].y=-Math.random()*H*1.3 } }
+  function floorY(){ return H*0.88 }
+  function drawBeam(b){
+    const fy=floorY();
+    const y2=Math.min(b.y,fy), y1=y2-b.len;
+    if(y2<0) return;
+    const a=b.alpha;
+    const g=ctx.createLinearGradient(0,y1,0,y2);
+    g.addColorStop(0,`rgba(${b.c.r},${b.c.g},${b.c.b},0)`);
+    g.addColorStop(1,`rgba(${b.c.r},${b.c.g},${b.c.b},${(0.55*a).toFixed(2)})`);
+    ctx.strokeStyle=g; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.moveTo(b.x,y1); ctx.lineTo(b.x,y2); ctx.stroke();
+  }
+  function drawBurst(b){
+    const p=Math.min(1,b.stateT/0.55), fade=1-p;
+    b.burstPts.forEach(pt=>{
+      const px=b.x+pt.dx*p*36, py=floorY()+pt.dy*p*20;
+      ctx.beginPath();
+      ctx.fillStyle=`rgba(${b.c.r},${b.c.g},${b.c.b},${(fade*.7).toFixed(2)})`;
+      ctx.arc(px,py,1.6*fade+0.4,0,Math.PI*2); ctx.fill();
+    });
+    const rg=ctx.createRadialGradient(b.x,floorY(),0,b.x,floorY(),26*p+4);
+    rg.addColorStop(0,`rgba(${b.c.r},${b.c.g},${b.c.b},${(fade*.4).toFixed(2)})`);
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(b.x,floorY(),26*p+4,0,Math.PI*2); ctx.fill();
+  }
+  /* מכונת מצבים מפורשת: נפילה → פיצוץ → דעיכה → ריספאון אמיתי למעלה.
+     התקלה הקודמת: אחרי הפיצוץ הקרן נשארה על הרצפה, מה שהפעיל פיצוץ חדש
+     שוב ושוב באותה נקודה במקום לחזור למעלה — "תקיעה" מוחשית. */
+  function step(b,dt){
+    if(b.delay>0){ b.delay-=dt; return }
+    if(b.state==='fall'){
+      b.y+=b.v*dt;
+      if(b.y>=floorY()){
+        b.y=floorY(); b.state='burst'; b.stateT=0;
+        b.burstPts=Array.from({length:7},()=>({dx:(Math.random()-.5)*2,dy:-Math.random()*1.4}));
+      }
+      return;
+    }
+    if(b.state==='burst'){
+      b.stateT+=dt;
+      if(b.stateT>=0.55){ b.state='fade'; b.stateT=0 }
+      return;
+    }
+    if(b.state==='fade'){
+      b.stateT+=dt;
+      const FADE_DUR=0.4;
+      b.alpha=Math.max(0,1-b.stateT/FADE_DUR);
+      if(b.stateT>=FADE_DUR) spawn(beams.indexOf(b));
+      return;
+    }
+  }
+  function init(){
+    if(noMotion||!cv){ document.body.classList.add('no-gl'); return }
+    try{
+      ctx=cv.getContext('2d',{alpha:true});
+      if(!ctx) throw 0;
+      resize(); addEventListener('resize',resize);
+      initBeams(Math.min(6, Math.max(4, Math.round(innerWidth/230))));
+      last=performance.now();
+      raf=requestAnimationFrame(loop);
+    }catch(e){ ctx=null; document.body.classList.add('no-gl') }
+  }
+  function resize(){
+    if(!ctx) return;
+    const dpr=Math.min(devicePixelRatio||1,2);
+    W=innerWidth; H=innerHeight;
+    cv.width=W*dpr; cv.height=H*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function loop(now){
+    raf=requestAnimationFrame(loop);
+    if(paused||document.hidden){ last=now; return }
+    const dt=Math.min((now-last)/1000,.05); last=now;
+    ctx.clearRect(0,0,W,H);
+    beams.forEach(b=>{ step(b,dt); drawBeam(b); if(b.state==='burst') drawBurst(b) });
+  }
+  return { init, pause(){paused=true; if(cv)cv.style.opacity='0'},
+           resume(){paused=false; if(cv)cv.style.opacity=''} };
+})();
+Rays.init();
+
+/* גיירוסקופ במקום עכבר: אותו עיקרון של Aceternity 3D Card, מותאם למגע */
+const Tilt=(()=>{
+  let raf=0,node=null,body=null,rx=0,ry=0,trx=0,try_=0,last=performance.now(),
+      idleT=0,liveUntil=0,onOrient=null,onMove=null;
+  function loop(now){
+    raf=requestAnimationFrame(loop);
+    const dt=Math.min((now-last)/1000,.05); last=now;
+    if(now>liveUntil){ idleT+=dt; trx=Math.cos(idleT*0.5)*3; try_=Math.sin(idleT*0.6)*5 }
+    rx+=(trx-rx)*(1-Math.exp(-dt*6));
+    ry+=(try_-ry)*(1-Math.exp(-dt*6));
+    if(body){ body.style.setProperty('--rx',rx.toFixed(2)+'deg');
+      body.style.setProperty('--ry',ry.toFixed(2)+'deg') }
+  }
+  return {
+    start(n){
+      if(noMotion) return;
+      node=n; body=n.querySelector('.tilt3d-body'); last=performance.now();
+      onOrient=e=>{ if(e.gamma==null&&e.beta==null) return;
+        try_=Math.max(-16,Math.min(16,(e.gamma||0)*0.6));
+        trx=Math.max(-11,Math.min(11,((e.beta||0)-45)*-0.32));
+        liveUntil=performance.now()+700; };
+      onMove=e=>{ if(e.pointerType!=='mouse'||!body) return;
+        const r=body.getBoundingClientRect();
+        const nx=((e.clientX-r.left)/r.width-0.5)*2, ny=((e.clientY-r.top)/r.height-0.5)*2;
+        try_=Math.max(-16,Math.min(16,nx*16)); trx=Math.max(-12,Math.min(12,-ny*12));
+        liveUntil=performance.now()+700; };
+      window.addEventListener('deviceorientation',onOrient,{passive:true});
+      node.addEventListener('pointermove',onMove,{passive:true});
+      node.addEventListener('pointerdown',()=>{ if(!gyroAsked){gyroAsked=true; Light.ask()} },{once:true,passive:true});
+      raf=requestAnimationFrame(loop);
+    },
+    stop(){
+      cancelAnimationFrame(raf);
+      if(onOrient) window.removeEventListener('deviceorientation',onOrient);
+      if(node&&onMove) node.removeEventListener('pointermove',onMove);
+      node=null; body=null; rx=ry=trx=try_=0;
+    }
+  };
+})();
+
+/* חיסכון בסוללה: הכל נעצר כשהאפליקציה ברקע */
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ Rays.pause(); Light.pause() }
+  else { if(!stageOpen()) Rays.resume(); Light.resume() }
+});
+function stageOpen(){ const st=document.getElementById('stage'); return st && !st.classList.contains('hidden') }
+let gyroAsked=false;
+document.addEventListener('pointerdown',()=>{
+  if(!gyroAsked){ gyroAsked=true; Light.ask() }
+},{once:true,passive:true});
+/* פיצול לאותיות ברוח SplitText — וונילה, שומר מילים שלמות ב-RTL */
+function splitIn(el,stagger){
+  if(noMotion||!el) return;
+  const text=el.textContent; el.textContent='';
+  const st=stagger||0.026; let i=0;
+  const words=text.split(' ');
+  words.forEach((w,wi)=>{
+    const ws=document.createElement('span'); ws.className='wsplit';
+    for(const c of w){
+      const sp=document.createElement('span'); sp.className='ch';
+      sp.style.setProperty('--d',(i++*st).toFixed(3)+'s');
+      sp.textContent=c; ws.appendChild(sp);
+    }
+    el.appendChild(ws);
+    if(wi<words.length-1){ const g=document.createElement('span');
+      g.className='wsp'; g.textContent=' '; el.appendChild(g) }
+  });
+}
+function setSplit(el,text,stagger){ if(!el)return; el.textContent=text; splitIn(el,stagger) }
+
+function tickUp(el,txt){
+  const v=parseFloat(txt);
+  if(noMotion||!isFinite(v)){ el.textContent=txt; return }
+  const dec=(String(txt).split('.')[1]||'').length, t0=performance.now(), dur=850;
+  (function f(n){ const p=Math.min(1,(n-t0)/dur), e=1-Math.pow(1-p,3);
+    el.textContent=(v*e).toFixed(dec);
+    if(p<1) requestAnimationFrame(f); else el.textContent=txt;
+  })(t0);
+}
+
+/* ============================================================
+   Landolt C — רגישות לניגודיות (logCS, מכויל)
+   ============================================================ */
+let lcStair,lcAns,lcLimit,lcNoSave=false;
+/* שומר התקפות: מדידה בתנאים שונים מהבסיס = השוואת תפוזים לתפוחים */
+function lcPre(){
+  const cardW=Math.min(CARD_MM*D.cal.pxmm, window.innerWidth-60);
+  body.innerHTML=`<div class="pane"><span class="eyebrow">בדיקת תנאים · 10 שניות</span>
+    <h2 style="margin-top:8px">לפני שמודדים</h2>
+    <div class="cardsim" style="width:${cardW}px;margin-top:18px"><i></i></div>
+    <p class="lead" style="margin-top:10px">הצמד כרטיס למלבן. אם הוא לא תואם בדיוק — הכיול זז ואסור למדוד.</p>
+    <div style="display:flex;gap:8px;max-width:300px;margin:16px auto 0">
+      <button class="btn sm" id="cOk" style="flex:1">תואם</button>
+      <button class="btn ghost sm" id="cNo" style="flex:1">לא תואם</button>
+    </div>
+    <p class="lead" id="liQ" style="margin-top:20px;display:none">באיזו תאורה אתה עכשיו?</p>
+    <div id="liRow" style="display:none;gap:8px;max-width:300px;margin:10px auto 0">
+      <button class="btn ghost sm" data-li="day" style="flex:1">אור יום</button>
+      <button class="btn ghost sm" data-li="lamp" style="flex:1">תאורה מלאכותית</button>
+      <button class="btn ghost sm" data-li="dark" style="flex:1">חשוך</button>
+    </div></div>`;
+  foot.innerHTML='';
+  wrapBtns(body);
+  $('#cNo').onclick=()=>{ closeStage(); obStep=1; onb() };
+  $('#cOk').onclick=()=>{
+    $('#cOk').closest('div').style.display='none';
+    $('#liQ').style.display='block'; $('#liRow').style.display='flex';
+  };
+  $('#liRow').onclick=e=>{
+    const b=e.target.closest('[data-li]'); if(!b) return;
+    const li=b.dataset.li;
+    if(!D.conds){ D.conds={light:li}; store.set(D); lcNoSave=false; lcRun(); return }
+    if(li===D.conds.light){ lcNoSave=false; lcRun(); return }
+    lcBlock(li);
+  };
+}
+function lcBlock(li){
+  const NAMES={day:'אור יום',lamp:'תאורה מלאכותית',dark:'חושך'};
+  body.innerHTML=`<div class="pane"><span class="eyebrow" style="color:var(--bad)">תנאים שונים</span>
+    <h2 style="margin-top:8px">המדידה לא תושווה</h2>
+    <p class="lead" style="margin-top:10px">הבסיס נמדד ב<b>${NAMES[D.conds.light]}</b>, עכשיו <b>${NAMES[li]}</b>. רגישות לניגודיות תלויה בתאורה — מספר מכאן מול מספר משם הוא רעש, לא שינוי. מכשיר אמיתי מסרב למדוד ככה.</p>
+    <div style="max-width:300px;margin:18px auto 0">
+      <button class="btn ghost sm" id="lcAny">מדוד בכל זאת · לא יישמר</button>
+      <button class="btn sm" id="lcSkip" style="margin-top:8px">דלג — אמדוד בתנאי הבסיס</button>
+    </div></div>`;
+  foot.innerHTML=''; wrapBtns(body);
+  $('#lcAny').onclick=()=>{ lcNoSave=true; lcRun() };
+  $('#lcSkip').onclick=advance;
+}
+function lcRun(){ lcStair=new Stair(0.6,0.15,0,CS_CEIL,false); lcLimit=false; lcTrial() }
+function lcTrial(){
+  const C=Math.pow(10,-lcStair.v);
+  let ring=Math.round(CS_BG*(1-C));
+  if(ring>=CS_BG){ ring=CS_BG-1; lcLimit=true }
+  let px=pxForArcmin(CS_RING_ARCMIN);
+  if(!isFinite(px)||px<24) px=24;
+  px=Math.min(px, Math.min(window.innerWidth,window.innerHeight)*0.62);
+  const dirs=[0,90,180,270]; lcAns=dirs[(Math.random()*4)|0];
+  const r=40,sw=20,Ci=2*Math.PI*r,gap=sw;
+  body.innerHTML=`<div class="lc" style="background:rgb(${CS_BG},${CS_BG},${CS_BG})">
+    <svg width="${px}" height="${px}" viewBox="0 0 100 100" style="transform:rotate(${lcAns}deg)">
+      <circle cx="50" cy="50" r="${r}" stroke-width="${sw}" fill="none"
+        stroke="rgb(${ring},${ring},${ring})"
+        stroke-dasharray="${Ci-gap} ${gap}" stroke-dashoffset="${gap/2}"/></svg></div>`;
+  foot.innerHTML=`<p class="tiny" style="text-align:center;margin-bottom:9px">החלק לכיוון הפתח — או הקש</p>
+    <div class="arrows">
+      <span class="sp"></span><button data-d="270">↑</button><span class="sp"></span>
+      <button data-d="180">←</button><span class="sp"></span><button data-d="0">→</button>
+      <span class="sp"></span><button data-d="90">↓</button><span class="sp"></span>
+    </div>`;
+  const answer=d=>{
+    lcStair.record(d===lcAns);
+    prog((qi+Math.min(1,lcStair.rev.length/6))/queue.length);
+    lcStair.done? lcDone() : lcTrial();
+  };
+  $('.arrows').onclick=e=>{ const b=e.target.closest('button'); if(b) answer(+b.dataset.d) };
+  /* החלקה בכל מקום על שדה המבחן */
+  let sx=0,sy=0,down=false;
+  const fld=$('.stage-body');
+  fld.classList.add('swipe');
+  const pd=e=>{ down=true; sx=e.clientX; sy=e.clientY; e.preventDefault() };
+  const pu=e=>{
+    if(!down) return; down=false;
+    const dx=e.clientX-sx, dy=e.clientY-sy;
+    if(Math.hypot(dx,dy)<24) return;
+    answer(Math.abs(dx)>Math.abs(dy) ? (dx>0?0:180) : (dy>0?90:270));
+  };
+  const pc=()=>{ down=false };
+  fld.addEventListener('pointerdown',pd);
+  fld.addEventListener('pointerup',pu);
+  fld.addEventListener('pointercancel',pc);
+  cleanup=()=>{ fld.classList.remove('swipe'); fld.removeEventListener('pointerdown',pd);
+    fld.removeEventListener('pointerup',pu); fld.removeEventListener('pointercancel',pc) };
+}
+async function lcDone(){
+  const cs=+lcStair.threshold.toFixed(2);
+  let delta=null;
+  if(!lcNoSave){
+    await log('landolt',cs);
+    const p=prev('landolt');
+    if(p){ const dd=+(cs-p.s).toFixed(2);
+      delta=dd>0.1?{k:'up',t:`שיפור של ${dd} logCS`}:dd<-0.1?{k:'down',t:`ירידה של ${Math.abs(dd)} logCS`}:{k:'flat',t:'ללא שינוי מובהק'} }
+  } else {
+    delta={k:'down',t:'לא נשמר — תנאים שונים מהבסיס'};
+  }
+  const band = cs>=1.8?'בטווח הנורמלי למבוגר בריא (1.8-2.0)':cs>=1.5?'מתחת לטווח הנורמלי':'נמוך משמעותית';
+  result({label:'רגישות לניגודיות · Landolt C',value:cs.toFixed(2),unit:'logCS',
+    sub:`${band} · ${lcStair.rev.length} היפוכים · ${lcStair.n} סבבים`,delta,
+    msg:lcLimit?`הגעת לתקרת המכשיר (logCS ${CS_CEIL}). המסך לא יכול לייצר ניגודיות נמוכה מזו ב-8 ביט. תוצאה טובה — וגם מגבלה אמיתית.`
+      :'גבוה = טוב. זו הרגישות שנשחקת מעייפות מסך ומגיל, והרבה יותר קשורה ל״חדות״ שאתה מרגיש ביומיום מאשר קריאת אותיות זעירות. הערך המוחלט תלוי בבהירות המסך — רק השינוי לאורך זמן, באותם תנאים, אומר משהו.'});
+}
+
+/* ============================================================
+   שולטה — סריקה (שניות)
+   ============================================================ */
+let sSize,sNext,sStart,sTimer;
+function schulteRun(){
+  const lv=D.levels.schulte; sSize=lv<=2?4:lv<=5?5:6;
+  const n=sSize*sSize, nums=[...Array(n).keys()].map(i=>i+1);
+  for(let i=n-1;i>0;i--){const j=(Math.random()*(i+1))|0;[nums[i],nums[j]]=[nums[j],nums[i]]}
+  body.innerHTML=`<div class="schulte" id="grid" style="grid-template-columns:repeat(${sSize},1fr)">
+    ${nums.map(v=>`<button class="sq" data-v="${v}">${v}</button>`).join('')}</div><div class="fix">✛</div>`;
+  foot.innerHTML=`<p class="tiny" style="text-align:center">הבא <b id="nxt" style="color:var(--coat)">1</b> · <span id="clk">0.0</span> שנ׳</p>`;
+  sNext=1; sStart=performance.now();
+  sTimer=setInterval(()=>{$('#clk').textContent=((performance.now()-sStart)/1000).toFixed(1)},100);
+  cleanup=()=>clearInterval(sTimer);
+  $('#grid').onclick=e=>{ const b=e.target.closest('.sq'); if(!b||b.classList.contains('hit'))return;
+    if(+b.dataset.v===sNext){ b.classList.add('hit'); sNext++;
+      $('#nxt').textContent=sNext>sSize*sSize?'—':sNext;
+      prog((qi+(sNext-1)/(sSize*sSize))/queue.length);
+      if(sNext>sSize*sSize) schulteDone();
+    } else { b.classList.add('miss'); setTimeout(()=>b.classList.remove('miss'),300) }
+  };
+}
+async function schulteDone(){
+  clearInterval(sTimer);
+  const sec=+((performance.now()-sStart)/1000).toFixed(1), lv=D.levels.schulte;
+  const par=sSize===4?22:sSize===5?38:62;
+  let msg='';
+  if(sec<par&&lv<8){ D.levels.schulte=lv+1; msg='מתחת לסף — הרמה עולה.' }
+  else if(sec>par*1.9&&lv>1){ D.levels.schulte=lv-1; msg='ירדנו רמה. קשה מדי מאבד ערך בדיוק כמו קל מדי.' }
+  else msg='בטווח. חזור על הרמה עד שהזמן יורד מתחת לסף.';
+  await log('schulte',sec,lv);
+  const p=prev('schulte'); let delta=null;
+  if(p){ const dd=+(p.s-sec).toFixed(1);
+    delta=dd>.4?{k:'up',t:`מהיר ב-${dd} שנ׳`}:dd<-.4?{k:'down',t:`איטי ב-${Math.abs(dd)} שנ׳`}:{k:'flat',t:'ללא שינוי'} }
+  result({label:`סריקה · שולטה ${sSize}×${sSize}`,value:sec,unit:'שנ׳',sub:`רמה ${lv}`,delta,msg});
+}
+
+/* ============================================================
+   היקפי — סף זיהוי (מ״ש בזווית קבועה)
+   ============================================================ */
+let pStair,pAns,pEcc;
+function periphRun(){ pEcc=periphDeg(); pStair=new Stair(260,50,50,420,true); periphTrial() }
+function periphTrial(){
+  body.innerHTML=`<div id="pf" style="position:absolute;inset:0"><div class="fix" style="font-size:26px">✛</div></div>`;
+  foot.innerHTML=`<p class="tiny" style="text-align:center">נעל מבט על הצלב · ${pEcc}° מהמרכז</p>`;
+  const f=$('#pf'),W=f.clientWidth||window.innerWidth,H=f.clientHeight||window.innerHeight;
+  let R=pxForArcmin(pEcc*60);
+  if(!isFinite(R)) R=100;
+  R=Math.min(R, Math.min(W,H)/2-26);
+  const ang=Math.random()*Math.PI*2;
+  pAns=1+((Math.random()*9)|0);
+  const ms=Math.max(50,pStair.v);
+  let t2=0;
+  const to=setTimeout(()=>{
+    const el=document.createElement('div'); el.className='flash'; el.textContent=pAns;
+    el.style.cssText+=`font-size:30px;left:${W/2+R*Math.cos(ang)}px;top:${H/2+R*Math.sin(ang)}px`;
+    f.appendChild(el);
+    t2=setTimeout(()=>{ el.remove(); periphAsk() },ms);
+  },550+Math.random()*800);
+  cleanup=()=>{ clearTimeout(to); clearTimeout(t2) };
+}
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const HEB_NUM={'אחת':1,'אחד':1,'שתיים':2,'שניים':2,'שתים':2,'שלוש':3,'ארבע':4,'חמש':5,'שש':6,'שבע':7,'שמונה':8,'תשע':9};
+let pRec=null;
+function periphAsk(){
+  const mic = SR ? `<button class="btn ghost sm" id="pMic" style="max-width:290px;margin:8px auto 0">${D.voice?'🎤 מקשיב… אמור את הספרה':'🎤 ענה בקול'}</button>` : '';
+  foot.innerHTML=`<div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-n="${n}">${n}</button>`).join('')}</div>${mic}`;
+  wrapBtns(foot);
+  const answer=(n,btn)=>{
+    const ok=n===pAns;
+    if(btn) btn.style.borderColor=ok?'var(--good)':'var(--bad)';
+    stopRec();
+    pStair.record(ok);
+    prog((qi+Math.min(1,pStair.rev.length/6))/queue.length);
+    setTimeout(()=> pStair.done?periphDone():periphTrial(),240);
+  };
+  $('.pad').onclick=e=>{ const b=e.target.closest('button'); if(b) answer(+b.dataset.n,b) };
+  function startRec(){
+    if(!SR) return;
+    try{
+      pRec=new SR(); pRec.lang='he-IL'; pRec.maxAlternatives=4;
+      pRec.onresult=ev=>{
+        for(const res of ev.results[0]){
+          const t=res.transcript.trim();
+          const dig=t.match(/[1-9]/);
+          if(dig){ answer(+dig[0]); return }
+          for(const w in HEB_NUM) if(t.includes(w)){ answer(HEB_NUM[w]); return }
+        }
+        startRec();   // לא הובן — הקשבה מחדש
+      };
+      pRec.onerror=()=>{}; pRec.start();
+    }catch(e){}
+  }
+  function stopRec(){ try{ pRec&&pRec.abort() }catch(e){} pRec=null }
+  if(SR&&$('#pMic')) $('#pMic').onclick=()=>{
+    D.voice=1; store.set(D);
+    $('#pMic').firstElementChild.textContent='🎤 מקשיב… אמור את הספרה';
+    startRec();
+  };
+  if(SR&&D.voice) startRec();
+  const prevClean=cleanup; cleanup=()=>{ stopRec(); if(prevClean)prevClean() };
+}
+async function periphDone(){
+  const ms=Math.round(pStair.threshold);
+  await log('periph',ms,pEcc);
+  const p=prev('periph'); let delta=null;
+  if(p){ const dd=p.s-ms;
+    delta=dd>15?{k:'up',t:`סף קצר ב-${dd} מ״ש`}:dd<-15?{k:'down',t:`סף ארוך ב-${Math.abs(dd)} מ״ש`}:{k:'flat',t:'ללא שינוי'} }
+  result({label:`ראייה היקפית · ${pEcc}° מהמרכז`,value:ms,unit:'מ״ש',
+    sub:`סף זיהוי 70.7% · ${pStair.rev.length} היפוכים`,delta,
+    msg:'זה משך ההבזק הקצר ביותר שבו עוד זיהית ספרה בזווית הזו. נמוך = טוב. אם הזזת עיניים, המספר חסר ערך — והמערכת לא תדע. אתה כן.'});
+}
+
+/* ============================================================
+   מעקב חלק — מודרך
+   ============================================================ */
+function pursuitRun(secs,mul){
+  let n=3;
+  body.innerHTML=`<div class="pane"><div class="count3" id="c3">3</div></div>`;
+  foot.innerHTML='';
+  const iv=setInterval(()=>{ n--;
+    if(n<1){ clearInterval(iv); pursuitGo(secs,mul); return }
+    $('#c3').textContent=n; buzz(8);
+  },600);
+  cleanup=()=>clearInterval(iv);
+}
+let pMorning=false;
+function pursuitGo(secs,isMorning){
+  pMorning=!!isMorning;
+  const lv=D.levels.pursuit||1;
+  const degS=pMorning? 8+3*lv : 8;              // מהירות זוויתית אמיתית
+  body.innerHTML=`<div id="field"><div class="fix">✛</div><div class="dot" id="dot"></div></div>`;
+  foot.innerHTML=`<p class="tiny" style="text-align:center">הראש נייח · <b style="color:var(--sun)">${degS}°/שנ׳</b> מכויל${pMorning?' · רמה '+lv:''}</p>`;
+  const f=$('#field'),dot=$('#dot');
+  const W=f.clientWidth||window.innerWidth,H=f.clientHeight||window.innerHeight;
+  const cx=W/2,cy=H/2,R=Math.min(W,H)*.38;
+  const paths=[
+    t=>[cx+R*Math.cos(t),cy+R*Math.sin(t)],
+    t=>[cx+R*Math.sin(t),cy+R*Math.sin(t)*Math.cos(t)],
+    t=>[cx+R*1.05*Math.sin(t),cy+R*.12*Math.sin(t*5)],
+    t=>[cx+R*Math.sin(t*.7),cy+R*Math.cos(t*1.6)]
+  ];
+  const seg=secs/paths.length;
+  let t=0,last=performance.now(),el=0,raf;
+  let pxDeg=pxForArcmin(60); if(!isFinite(pxDeg)||pxDeg<10) pxDeg=45;
+  const rate=Math.min(3.2, degS*pxDeg/R);       // ω כך שהמהירות המשיקית ≈ degS
+  (function loop(now){
+    if(typeof now!=='number'||!isFinite(now)) now=performance.now();
+    let dt=(now-last)/1000;
+    if(!isFinite(dt)||dt<0) dt=0;
+    if(dt>0.25) dt=0.25;
+    last=now; el+=dt;
+    if(el>=secs){ pursuitDone(); return }
+    prog((qi+el/secs)/queue.length);
+    let i=Math.floor(el/seg); if(!isFinite(i)||i<0) i=0; if(i>paths.length-1) i=paths.length-1;
+    t+=dt*rate;
+    const pt=paths[i](t);
+    dot.style.transform=`translate(${pt[0]}px,${pt[1]}px)`;
+    raf=requestAnimationFrame(loop);
+  })(performance.now());
+  cleanup=()=>cancelAnimationFrame(raf);
+}
+async function pursuitDone(){
+  if(cleanup){cleanup();cleanup=null}
+  let lvMsg='';
+  if(pMorning){
+    D.pursN=(D.pursN||0)+1;
+    if(D.pursN%3===0 && (D.levels.pursuit||1)<8){
+      D.levels.pursuit=(D.levels.pursuit||1)+1;
+      lvMsg=` המהירות עולה: מהאימון הבא ${8+3*D.levels.pursuit}°/שנ׳.`;
+    }
+    await store.set(D);
+  }
+  body.innerHTML=`<div class="pane"><span class="eyebrow">מודרך · לא נמדד</span>
+    <div class="num big" style="color:var(--coat)">✓</div>
+    <p class="lead" style="margin-top:6px">אין ציון — בלי מצלמה אי אפשר למדוד תנועות עיניים. אם הראש היה נייח, עשית את זה נכון.${lvMsg}</p></div>`;
+  $('.pane').onclick=advance;
+  foot.innerHTML='';
+  const t=setTimeout(advance,1700); cleanup=()=>clearTimeout(t);
+}
+
+/* ============================================================
+   קפיצות מבט (Saccades) — מודרך, קצב מתקדם
+   ============================================================ */
+function sacRun(){
+  const f_ecc=Math.max(4,Math.min(9,+(maxEccDeg()*0.7).toFixed(1)));
+  body.innerHTML=`<div id="field">
+    <div class="dot" id="sA" style="width:26px;height:26px;margin:-13px 0 0 -13px"></div>
+    <div class="dot" id="sB" style="width:26px;height:26px;margin:-13px 0 0 -13px"></div></div>`;
+  foot.innerHTML=`<p class="tiny" style="text-align:center">קפוץ במדויק בין הנקודות · ${f_ecc}° לכל צד · הקצב עולה</p>`;
+  const f=$('#field'),A=$('#sA'),B=$('#sB');
+  const W=f.clientWidth||window.innerWidth,H=f.clientHeight||window.innerHeight;
+  let R=pxForArcmin(f_ecc*60); if(!isFinite(R)) R=110;
+  R=Math.min(R,W/2-30);
+  const total=45; let vert=false, act=0, el=0, iv=null, gap=1050;
+  const place=()=>{
+    const ax=vert? W/2 : W/2-R, ay=vert? H/2-Math.min(R,H/2-40) : H/2;
+    const bx=vert? W/2 : W/2+R, by=vert? H/2+Math.min(R,H/2-40) : H/2;
+    A.style.transform=`translate(${ax}px,${ay}px)`;
+    B.style.transform=`translate(${bx}px,${by}px)`;
+  };
+  const paint=()=>{ A.style.opacity=act===0?1:.22; B.style.opacity=act===1?1:.22 };
+  place(); paint();
+  const tick=()=>{
+    el+=gap/1000;
+    if(el>=total){ clearInterval(iv); sacDone(); return }
+    if(!vert && el>total/2){ vert=true; place() }   // חצי שני: אנכי
+    act=1-act; paint(); buzz(5);
+    gap=Math.max(560,gap-14);
+    clearInterval(iv); iv=setInterval(tick,gap);
+    prog((qi+el/total)/queue.length);
+  };
+  iv=setInterval(tick,gap);
+  cleanup=()=>clearInterval(iv);
+}
+function sacDone(){
+  if(cleanup){cleanup();cleanup=null}
+  body.innerHTML=`<div class="pane"><span class="eyebrow">מודרך · לא נמדד</span>
+    <div class="num big" style="color:var(--sun)">✓</div>
+    <p class="lead" style="margin-top:6px">קפיצות מדויקות בין נקודות הן הבסיס לקריאה מהירה — העין קוראת בקפיצות, לא בגלישה.</p></div>`;
+  $('.pane').onclick=advance;
+  foot.innerHTML='';
+  const t=setTimeout(advance,1700); cleanup=()=>clearTimeout(t);
+}
+
+/* ============================================================
+   גמישות מיקוד (Hart מותאם) — נמדד: מחזורים/דקה
+   ============================================================ */
+const FLEX_LETTERS='אבגדהוזחטכלמנסעפצקרשת';
+let fxPhase,fxCount,fxT0,fxLast,fxTimer;
+function fxRow(){
+  let out='';
+  for(let i=0;i<5;i++) out+=FLEX_LETTERS[(Math.random()*FLEX_LETTERS.length)|0]+' ';
+  return out.trim();
+}
+function flexRun(){
+  let px=pxForArcmin(18); if(!isFinite(px)||px<13) px=13;
+  fxPhase='near'; fxCount=0; fxT0=performance.now(); fxLast=0;
+  body.innerHTML=`<div class="pane" id="fxP" style="cursor:pointer">
+    <span class="eyebrow" id="fxE">קרוב</span>
+    <div id="fxL" style="font-family:var(--display);font-weight:700;letter-spacing:.35em;
+      font-size:${px.toFixed(1)}px;margin:16px 0;direction:rtl">${fxRow()}</div>
+    <p class="lead" id="fxT">קרא את האותיות. ברגע שהן חדות לגמרי — הקש בכל מקום.</p>
+    <div class="nf-count" id="fxC" style="margin-top:14px">0</div>
+    <p class="tiny">מחזורים · 60 שניות</p></div>`;
+  foot.innerHTML=`<p class="tiny" style="text-align:center">60 שניות · כמה מחזורי קרוב-רחוק תספיק?</p>`;
+  const el=$('#fxP');
+  const tap=e=>{
+    const now=performance.now();
+    if(now-fxLast<350) return;           // הגנה מהקשה כפולה
+    fxLast=now;
+    if(fxPhase==='near'){
+      fxPhase='far'; buzz([40,70,40]);
+      $('#fxE').textContent='רחוק'; $('#fxL').style.visibility='hidden';
+      $('#fxT').textContent='הרם מבט למשהו רחוק (6 מ׳+). כשהוא חד — הקש.';
+    } else {
+      fxPhase='near'; fxCount++; buzz(40);
+      $('#fxC').textContent=fxCount;
+      $('#fxE').textContent='קרוב';
+      $('#fxL').textContent=fxRow();      // אותיות חדשות — בלי שינון
+      $('#fxL').style.visibility='visible';
+      $('#fxT').textContent='קרא את האותיות. חדות? הקש.';
+    }
+  };
+  el.addEventListener('pointerdown',tap);
+  fxTimer=setInterval(()=>{
+    const el2=(performance.now()-fxT0)/1000;
+    prog((qi+Math.min(1,el2/60))/queue.length);
+    if(el2>=60){ clearInterval(fxTimer); flexDone() }
+  },250);
+  cleanup=()=>{ clearInterval(fxTimer); el.removeEventListener('pointerdown',tap) };
+}
+async function flexDone(){
+  if(cleanup){cleanup();cleanup=null}
+  const cpm=fxCount;
+  await log('flex',cpm);
+  const p=prev('flex'); let delta=null;
+  if(p){ const dd=cpm-p.s;
+    delta=dd>1?{k:'up',t:`+${dd} מחזורים`}:dd<-1?{k:'down',t:`${dd} מחזורים`}:{k:'flat',t:'ללא שינוי'} }
+  result({label:'גמישות מיקוד · Hart מותאם',value:String(cpm),unit:'מחז׳/דק׳',
+    sub:'דיווח עצמי — הקשת רק כשבאמת חד',delta,
+    msg:'מחזור = קרוב חד + רחוק חד. גבוה יותר = מערכת מיקוד זריזה יותר. המדד ישר רק אם היית כן עם עצמך על ה"חד".'});
+}
+
+/* ============================================================
+   מצמוץ והרפיה — מודרך, ערב
+   ============================================================ */
+function blinkRun(){
+  body.innerHTML=`<div class="pane"><div>
+    <div id="bC" style="width:110px;height:110px;border-radius:50%;margin:0 auto;
+      background:radial-gradient(circle at 36% 30%,var(--sun-hi),var(--sun) 70%);
+      animation:blinkPulse 2s ease-in-out infinite"></div>
+    <h2 id="bT" style="margin-top:22px">מצמץ לאט, עם המעגל</h2>
+    <p class="lead" id="bS" style="margin-top:8px">מצמוץ מלא — לעצום עד הסוף ולפתוח. מסכים חותכים את קצב המצמוץ בחצי; זה מחזיר לחות.</p>
+    <div class="nf-count" id="bN" style="margin-top:12px">20</div>
+  </div></div>`;
+  foot.innerHTML='';
+  if(!document.getElementById('blinkKf')){
+    const st=document.createElement('style'); st.id='blinkKf';
+    st.textContent='@keyframes blinkPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.6);opacity:.35}}';
+    document.head.appendChild(st);
+  }
+  let left=20, phase=1;
+  const iv=setInterval(()=>{ left--;
+    if(left<=0){
+      if(phase===1){
+        phase=2; left=15; buzz([20,60,20]);
+        $('#bT').textContent='עכשיו עצום עיניים';
+        $('#bS').textContent='רטט חזק יסמן לך מתי לפתוח. שחרר את המצח ואת הלסת.';
+        $('#bC').style.animationDuration='4s';
+      } else {
+        clearInterval(iv); buzz([60,80,60,80,120]); blinkDone(); return;
+      }
+    }
+    $('#bN').textContent=left;
+    prog((qi+(phase===1?(20-left)/35:(20+(15-left))/35))/queue.length);
+  },1000);
+  cleanup=()=>clearInterval(iv);
+}
+function blinkDone(){
+  if(cleanup){cleanup();cleanup=null}
+  body.innerHTML=`<div class="pane"><span class="eyebrow">מודרך · לא נמדד</span>
+    <div class="num big" style="color:var(--sun)">✓</div>
+    <p class="lead" style="margin-top:6px">סיום רך ליום. העיניים עבדו — עכשיו הן צריכות לחות ומנוחה, לא עוד מסך.</p></div>`;
+  $('.pane').onclick=advance;
+  foot.innerHTML='';
+  const t=setTimeout(advance,1700); cleanup=()=>clearTimeout(t);
+}
+
+/* ============================================================
+   קרוב-רחוק — מודרך
+   ============================================================ */
+function nfRun(){
+  const cyc=5,near=8,far=15; let c=0,ph='near',left=near;
+  body.innerHTML=`<div class="nf"><div>
+    <div class="nf-mode near" id="m">קרוב</div><div class="nf-count" id="c">${near}</div>
+    <p class="lead" id="tx" style="max-width:250px;margin:14px auto 0;font-size:12px">התמקד בטקסט הזה. קרא אותו באמת — אל תבהה דרכו.</p>
+    <p class="tiny" style="margin-top:10px">מחזור <span id="cy">1</span> / ${cyc}</p></div></div>`;
+  foot.innerHTML='';
+  const iv=setInterval(()=>{ left--;
+    if(left<=0){
+      if(ph==='near'){ ph='far'; left=far; buzz([40,70,40]);
+        $('#m').textContent='רחוק'; $('#m').className='nf-mode far';
+        $('#tx').textContent='הרם את הראש — אל תסתכל בטלפון. רטט בודד יחזיר אותך. 6 מטר לפחות, מבט חד.';
+      } else { c++; buzz(45);
+        if(c>=cyc){ clearInterval(iv); nfDone(); return }
+        ph='near'; left=near; $('#m').textContent='קרוב'; $('#m').className='nf-mode near';
+        $('#tx').textContent='חזור למסך. התמקד בטקסט עד שהוא חד לגמרי.'; $('#cy').textContent=c+1;
+      }
+      prog((qi+c/cyc)/queue.length);
+    }
+    $('#c').textContent=left;
+  },1000);
+  cleanup=()=>clearInterval(iv);
+}
+function nfDone(){
+  if(cleanup){cleanup();cleanup=null}
+  body.innerHTML=`<div class="pane"><span class="eyebrow">מודרך · לא נמדד</span>
+    <div class="num big" style="color:var(--coat)">✓</div>
+    <p class="lead" style="margin-top:6px">כלל ה-20/20: כל 20 דקות מסך, 20 שניות למרחק. שווה לאמץ גם מחוץ לאפליקציה.</p></div>`;
+  $('.pane').onclick=advance;
+  foot.innerHTML='';
+  const t=setTimeout(advance,1700); cleanup=()=>clearTimeout(t);
+}
+
+/* ============================================================
+   רישום התרגילים
+   ============================================================ */
+const DRILLS={
+  landolt:{intro:()=>intro({title:'רגישות לניגודיות',
+    lead:'טבעת עם פתח בצד אחד, בגודל קבוע. הניגודיות שלה תרד ותעלה לפי התשובות שלך עד שנמצא את הסף שלך.',
+    rules:[['בהירות','קבע בהירות מסך ידנית וכבה בהירות אוטומטית. אחרת אתה מודד את הטלפון, לא את העין.'],
+           ['תאורה','אותה תאורת סביבה בכל מדידה. זה ה-confound הגדול כאן.'],
+           ['מרחק',`${D.cal.dist} ס״מ — בדיוק כמו בכיול.`],
+           ['נחש','אם אינך בטוח — נחש. שיטת המדרגות מניחה ניחוש ומתקזזת איתו.'],
+           ['~30 סבבים','נעצר לבד כשהסף יציב.']],
+    note:'<b>למה לא חדות רגילה?</b> טבעת של 20/20 במרחק 40 ס״מ יוצאת 2 פיקסלים — המסך פשוט לא יכול להציג אותה. כל אפליקציה שמדפיסה לך logMAR מהטלפון ביד ממציאה מספר. רגישות לניגודיות כן ניתנת למדידה כאן, והיא מדד קליני מקובל.',
+    cta:'התחל מדידה'},lcPre)},
+  schulte:{intro:()=>intro({title:'סריקה חזותית',
+    lead:'מצא את המספרים לפי הסדר. זה התרגיל שהכי מתרגם לקריאת מסמך ולסריקת טקסט.',
+    rules:[['הצלב','קבע מבט על הצלב הכתום במרכז.'],
+           ['בלי לסרוק','אל תחפש ריבוע-ריבוע. תן לראייה ההיקפית למצוא.'],
+           ['לפי הסדר','1, 2, 3... טעות לא נענשת, אבל מבזבזת זמן.']],
+    note:'הכלל הזה הוא כל התרגיל: מזיז עיניים = מתאמן במהירות אצבע. נשאר על הצלב = מתאמן בראייה היקפית.',
+    cta:'התחל'},schulteRun)},
+  periph:{intro:()=>intro({title:'ראייה היקפית',
+    lead:'המודעות הסביבתית. ספרה תהבהב מחוץ למרכז המבט, ונמצא את משך ההבזק הקצר ביותר שבו עוד תזהה אותה.',
+    rules:[['הצלב','המבט נעול. לאורך כל התרגיל.'],
+           ['זווית',`${periphDeg()}° מהמרכז — מכויל למסך ולמרחק שלך.`],
+           ['נחש','אם לא ראית — נחש, אבל אל תזוז כדי לראות.']],
+    note:'<b>נמדד.</b> הזזת עיניים תשפר את המספר ותרוקן את המדידה מתוכן. המערכת לא תדע. אתה תדע.',
+    cta:'התחל מדידה'},periphRun)},
+  pursuit:{intro:()=>intro({title:'מעקב חלק',
+    lead:'העין נועלת על אובייקט נע. המהירות מכוילת למסך שלך במעלות/שנייה אמיתיות, ועולה כל 3 אימונים.',
+    rules:[['נייח','הראש לא זז. אם בא לך להזיז — זה בדיוק מה שמתאמנים.'],
+           ['רציף','אל תיתן לנקודה לברוח ואל תקפוץ קדימה.'],
+           ['60 שניות','ארבעה מסלולים, מהירות אמיתית.']],
+    cta:'התחל'},()=>pursuitRun(60,true))},
+  pursuitSlow:{intro:()=>intro({title:'מעקב רגוע',
+    lead:'אותו מנגנון, 8°/שנייה קבועות. בערב המטרה לשחרר, לא לאתגר.',
+    rules:[['נייח','ראש לא זז.'],['איטי','אם קל — זה הרעיון.'],['45 שניות','ואז סיימנו.']],
+    cta:'התחל'},()=>pursuitRun(45,false))},
+  saccades:{intro:()=>intro({title:'קפיצות מבט',
+    lead:'העין קוראת ומסרקת בקפיצות, לא בגלישה. שתי נקודות — קפוץ ביניהן במדויק, והקצב יעלה לבד.',
+    rules:[['נייח','רק העיניים קופצות. הראש לא.'],
+           ['במדויק','לנחות על הנקודה, לא לגרור אליה.'],
+           ['45 שניות','חצי אופקי, חצי אנכי. רטט בכל מעבר.']],
+    cta:'התחל'},sacRun)},
+  flex:{intro:()=>intro({title:'גמישות מיקוד',
+    lead:'שריר המיקוד נתקע במרחק אחד אחרי שעות מסך. כאן מודדים כמה מהר הוא עובר: אותיות מכוילות קרוב, מטרה אמיתית רחוק.',
+    rules:[['קרוב','קרא את האותיות. חדות לגמרי? הקש.'],
+           ['רחוק','מבט ל-6 מ׳+. חד? הקש. רטט כפול מזכיר.'],
+           ['60 שניות','מחזורים לדקה — מדד קליני מקובל.'],
+           ['כנות','להקיש לפני שחד = לרמות את עצמך.']],
+    note:'<b>נמדד · דיווח עצמי.</b> המערכת לא יודעת אם באמת היה חד. המספר שווה בדיוק כמו הכנות שלך.',
+    cta:'התחל'},flexRun)},
+  blink:{intro:()=>intro({title:'מצמוץ והרפיה',
+    lead:'מול מסך אתה ממצמץ חצי מהרגיל — לכן העיניים יבשות בערב. 20 מצמוצים איטיים, ואז עצימה.',
+    rules:[['עם המעגל','מצמוץ מלא בכל התכווצות שלו.'],
+           ['ואז לעצום','15 שניות עיניים עצומות.'],
+           ['רטט חזק','יסמן לך מתי לפתוח — אל תציץ.']],
+    cta:'התחל'},blinkRun)},
+  nearfar:{intro:()=>intro({title:'קרוב · רחוק',
+    lead:'מעבר מיקוד. השריר שנתקע במרחק אחד אחרי שעות מול מסך.',
+    rules:[['גישה','צריך משהו רחוק — חלון, מסדרון, חדר גדול.'],
+           ['רטט כפול','עבור לרחוק — בלי להסתכל בטלפון.'],
+           ['רטט בודד','חזור לקרוב.'],['5 מחזורים','כשתי דקות.']],
+    cta:'התחל'},nfRun)}
+};
+
+/* ============================================================
+   מדידות
+   ============================================================ */
+const DEFS=[
+  {m:'landolt',n:'רגישות לניגודיות',u:'logCS',d:2,hi:true,base:'logmar',noise:0.15},
+  {m:'schulte',n:'סריקה חזותית',u:'שנ׳',d:1,base:'schulte',noise:null},
+  {m:'periph',n:'ראייה היקפית',u:'מ״ש',d:0,base:'periph',noise:20},
+  {m:'flex',n:'גמישות מיקוד',u:'מחז׳/דק׳',d:0,hi:true,base:'flex',noise:2}
+];
+function bigChart(f,h){
+  const H=110,W=320,PL=6,PR=6,PT=10,PB=18;
+  const vals=h.slice(-40).map(x=>x.s);
+  if(vals.length<2) return '<p class="tiny" style="padding:8px 0">מדידה אחת נרשמה — הגרף ייפתח מהשנייה.</p>';
+  const base=D.baseline? D.baseline[f.base] : null;
+  const noise=f.noise!=null? f.noise : (base? Math.abs(base)*0.1 : null);
+  let lo=Math.min(...vals), hi=Math.max(...vals);
+  if(base!=null&&noise!=null){ lo=Math.min(lo,base-noise); hi=Math.max(hi,base+noise) }
+  const pad=(hi-lo)*0.12||1; lo-=pad; hi+=pad;
+  const X=i=>PL+(i/(vals.length-1))*(W-PL-PR);
+  const Y=v=>PT+(1-(v-lo)/(hi-lo))*(H-PT-PB);
+  let sv=`<svg class="chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+  if(base!=null&&noise!=null){
+    const y1=Y(base+noise), y2=Y(base-noise);
+    sv+=`<rect x="0" y="${Math.min(y1,y2).toFixed(1)}" width="${W}" height="${Math.abs(y2-y1).toFixed(1)}"
+      fill="rgba(150,200,255,.09)"/>
+    <line x1="0" x2="${W}" y1="${Y(base).toFixed(1)}" y2="${Y(base).toFixed(1)}"
+      stroke="var(--moon)" stroke-width="1" stroke-dasharray="4 4" opacity=".7"/>`;
+  }
+  const pts=vals.map((v,i)=>X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+  sv+=`<polyline points="${pts}" fill="none" stroke="var(--sun)" stroke-width="1.6"
+    stroke-linejoin="round" stroke-linecap="round"/>`;
+  vals.forEach((v,i)=>{
+    sv+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="${i===vals.length-1?3.4:2}"
+      fill="${i===vals.length-1?'var(--sun)':'var(--edge2)'}"/>`;
+  });
+  sv+=`<text x="${PL}" y="${H-4}" font-size="8.5" fill="var(--dim)">${h[Math.max(0,h.length-40)].d.slice(5)}</text>
+    <text x="${W-PR}" y="${H-4}" font-size="8.5" fill="var(--dim)" text-anchor="end">${h[h.length-1].d.slice(5)}</text>`;
+  return sv+'</svg>';
+}
+function renderStats(){
+  setSplit($('#stats h1'),'המספרים');
+  const d=dayNum();
+  $('#monthPh').textContent='שלב '+phaseOf(d).n;
+  let cells='';
+  for(let i=1;i<=DAYS;i++){
+    let cls='fut';
+    if(i===d) cls='today';
+    else if(i<d){
+      const dt=D.start? iso(new Date(new Date(D.start+'T00:00:00').getTime()+(i-1)*864e5)):null;
+      cls=(dt&&D.days[dt]&&D.days[dt].length)?'did':'missed';
+    }
+    cells+=`<i class="${cls}" style="--m:${i}"></i>`;
+  }
+  $('#month').innerHTML=cells;
+  $('#statList').innerHTML=DEFS.map(f=>{
+    const h=D.history.filter(x=>x.m===f.m);
+    if(!h.length) return `<div class="mrow"><div class="mhead"><b>${f.n}</b><span class="tiny">טרם נמדד</span></div></div>`;
+    const last=h[h.length-1];
+    const best=f.hi?Math.max(...h.map(x=>x.s)):Math.min(...h.map(x=>x.s));
+    return `<div class="mrow">
+      <div class="mhead">
+        <div><b>${f.n}</b><span class="tiny">שיא ${best.toFixed(f.d)} · ${h.length} מדידות · ${f.hi?'גבוה = טוב':'נמוך = טוב'}</span></div>
+        <div class="mval"><span class="tv">${last.s.toFixed(f.d)}</span><span class="tiny"> ${f.u}</span></div>
+      </div>
+      ${bigChart(f,h)}
+    </div>`;
+  }).join('') + `
+    <p class="tiny" style="margin-top:4px">קו מקווקו = הבסיס שלך · הרצועה הכחולה = טווח הרעש: שינוי בתוכה אינו מובהק.</p>
+    <div style="margin-top:18px">
+      <div class="kv"><span>כיול</span><span>${D.cal.pxmm?D.cal.pxmm.toFixed(2)+' px/mm · '+D.cal.dist+' ס״מ':'—'}</span></div>
+      <div class="kv"><span>תאורת הבסיס</span><span>${D.conds?({day:'אור יום',lamp:'מלאכותית',dark:'חושך'})[D.conds.light]:'טרם נקבעה'}</span></div>
+      <div class="kv"><span>גבול היקפי במסך</span><span>${maxEccDeg().toFixed(1)}°</span></div>
+      <div class="kv"><span>מודרך בלבד</span><span style="color:var(--dim)">מעקב · קפיצות · קרוב-רחוק · מצמוץ</span></div>
+    </div>`;
+  $$('#statList .tv').forEach(el=>tickUp(el,el.textContent));
+  $('#statHint').innerHTML = D.history.length<8
+    ? 'צריך עוד מדידות לפני שהגרף אומר משהו. בימים הראשונים אתה לומד את המשימה, לא משפר ראייה — זה נורמלי ומתייצב.'
+    : 'רגישות לניגודיות: קו עולה = שיפור. סריקה והיקפי: קו יורד = שיפור. אבל חלק ניכר מכל שיפור הוא למידת המשימה, לא הראייה. מה שמעניין הוא המגמה מול הבסיס — לא הקפיצה מהסבב האחרון.';
+}
+
+/* ============================================================
+   דוח
+   ============================================================ */
+function renderRep(){
+  const b=D.baseline, r=D.retest, d=dayNum();
+  const cur=k=>{ const m=(k==='logmar')?'landolt':k;
+    const h=D.history.filter(x=>x.m===m); return h.length?h[h.length-1].s:null };
+  const row=(n,k,u,dec,hi)=>{
+    if(!b||b[k]==null) return `<div class="kv"><span>${n}</span><span style="color:var(--dim)">לא נמדד</span></div>`;
+    const c=r?r[k]:cur(k);
+    if(c==null||c===b[k]) return `<div class="kv"><span>${n}</span><span>${b[k].toFixed(dec)} ${u}</span></div>`;
+    const dd=hi?(c-b[k]):(b[k]-c), pct=b[k]?Math.round(dd/Math.abs(b[k])*100):0;
+    const cls=dd>0?'up':'down';
+    return `<div class="kv"><span>${n}</span><span>${b[k].toFixed(dec)} → ${c.toFixed(dec)} ${u}
+      <b class="${cls}" style="font-weight:500"> ${dd>0?'▲':'▼'}${Math.abs(pct)}%</b></span></div>`;
+  };
+  $('#repBody').innerHTML=`
+    <h1 style="margin-top:16px" id="repH">דוח ראייה</h1>
+    <p class="tiny" style="margin-top:6px">TrackX · יום ${d} מתוך ${DAYS} · הופק ${new Date().toLocaleDateString('he-IL')}</p>
+    <h3 style="margin-top:26px">תנאי מדידה</h3>
+    <div style="margin-top:6px">
+      <div class="kv"><span>כיול מסך</span><span>${D.cal.pxmm?D.cal.pxmm.toFixed(2):'—'} px/mm</span></div>
+      <div class="kv"><span>מרחק צפייה</span><span>${D.cal.dist} ס״מ</span></div>
+      <div class="kv"><span>מדידת בסיס</span><span>${b?b.date:'טרם בוצעה'}</span></div>
+      <div class="kv"><span>מדידה חוזרת</span><span>${r?r.date:'ביום '+DAYS}</span></div>
+    </div>
+    <h3 style="margin-top:24px">תוצאות</h3>
+    <div style="margin-top:6px">
+      ${row('רגישות לניגודיות','logmar','logCS',2,true)}
+      ${row('סריקה חזותית','schulte','שנ׳',1,false)}
+      ${row('ראייה היקפית','periph','מ״ש',0,false)}
+      ${row('גמישות מיקוד','flex','מחז׳/דק׳',0,true)}
+    </div>
+    <h3 style="margin-top:24px">איך לקרוא את זה</h3>
+    <p class="lead" style="margin-top:6px">שיפור באחוזים אינו שיפור בראייה. חלק ניכר ממנו הוא <b style="color:var(--paper);font-weight:400">למידת המשימה</b> — נהיית טוב יותר במבחן, לא בהכרח בעין. שינוי של פחות מ-0.15 ב-logCS נמצא בתחום השונות הרגילה בין מדידות ואינו מובהק. רגישות לניגודיות רגישה מאוד לבהירות המסך ולתאורת הסביבה — הערכים המוחלטים אינם ברי-השוואה למכשיר קליני, רק לעצמם.</p>
+    <p class="note" style="margin-top:14px"><b>הצהרה.</b> אינו מכשיר רפואי ואינו מאבחן. המדידות תקפות רק לתנאי הכיול שלמעלה. אם יש ירידה בראייה, כאב, הבזקים או ראייה כפולה — פנה לרופא עיניים, לא לאפליקציה.</p>`;
+  splitIn($('#repH'));
+}
+
+/* ============================================================
+   הפעלה
+   ============================================================ */
+function flipWords(el,words,interval){
+  if(!el||!words||!words.length) return ()=>{};
+  let i=0,timer=null;
+  let cur=document.createElement('b');
+  cur.className='fw-in'; cur.textContent=words[0];
+  el.textContent=''; el.appendChild(cur);
+  if(noMotion) return ()=>{};
+  function tick(){
+    i=(i+1)%words.length;
+    const next=document.createElement('b');
+    next.className='fw-in'; next.textContent=words[i];
+    cur.className='fw-out';
+    const dead=cur;
+    dead.addEventListener('animationend',()=>dead.remove(),{once:true});
+    el.appendChild(next); cur=next;
+    timer=setTimeout(tick, interval||2200);
+  }
+  timer=setTimeout(tick, interval||2200);
+  return ()=>{ clearTimeout(timer) };
+}
+function hideSplash(){
+  const sp=document.getElementById('splash');
+  if(!sp) return;
+  if(noMotion){ sp.remove(); if(stopSplashFw) stopSplashFw(); return }
+  setTimeout(()=>{ sp.classList.add('lift');
+    setTimeout(()=>{ sp.remove(); if(stopSplashFw) stopSplashFw() },650);
+  },1450);
+}
+let stopSplashFw=null;
+(async function(){
+  D=await store.get();
+  D.seen=D.seen||{}; D.conds=D.conds||null;
+  stopSplashFw=flipWords($('#fwSplash'),['מכויל','כן','מדויק','אישי'],750);
+  hideSplash();
+  if(!D.onboarded || !D.cal.pxmm){ obStep=0; onb() }
+  else go('home');
+})();
+</script>
+</body>
+</html>
