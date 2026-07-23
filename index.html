@@ -256,14 +256,18 @@ h3{font-family:var(--display);font-weight:500;font-size:15px}
 
 .glass{-webkit-backdrop-filter:blur(20px) saturate(155%);backdrop-filter:blur(20px) saturate(155%);
   background:rgba(var(--ink-rgb),.82);border:1px solid rgba(var(--paper-rgb),.13)}
-#setBtn{position:fixed;top:calc(12px + env(safe-area-inset-top));right:14px;z-index:45;
-  width:42px;height:42px;border-radius:14px;display:grid;place-items:center;color:var(--mist);
-  cursor:pointer;transition:transform .18s cubic-bezier(.22,.9,.24,1),color .18s}
+#setBar{position:fixed;left:0;right:0;top:calc(10px + env(safe-area-inset-top));z-index:45;
+  max-width:520px;margin:0 auto;padding:0 20px;pointer-events:none}
+#setBtn{pointer-events:auto;width:42px;height:42px;border-radius:14px;
+  display:grid;place-items:center;color:var(--mist);cursor:pointer;
+  border-color:rgba(var(--paper-rgb),.2);
+  transition:transform .18s cubic-bezier(.22,.9,.24,1),color .18s,border-color .18s}
+#setBtn:hover{color:var(--paper);border-color:rgba(var(--paper-rgb),.34)}
 #setBtn:active{transform:scale(.93)}
 #setBtn.open{color:var(--sun)}
 #setBtn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round}
-#setPanel{position:fixed;top:calc(62px + env(safe-area-inset-top));right:14px;z-index:46;
+#setPanel{pointer-events:auto;position:absolute;top:52px;right:20px;z-index:46;
   width:272px;padding:16px 16px 14px;border-radius:20px;
   box-shadow:0 26px 64px -26px rgba(0,0,0,.92);
   animation:panelIn .3s cubic-bezier(.22,.9,.24,1) backwards}
@@ -422,6 +426,28 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;bac
 .delta{font-size:12.5px;margin-top:6px}
 .hint{font-size:11px;color:var(--dim);line-height:1.7;margin-top:20px;padding-top:14px;border-top:1px solid var(--edge)}
 
+/* ---------- דסקטופ: העמודה הצרה מתפרסת לשתי עמודות ---------- */
+@media (min-width:900px){
+  .wrap{max-width:1200px;padding-left:36px;padding-right:36px}
+  #setBar{max-width:1200px;padding:0 36px}
+  #home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    column-gap:32px;align-items:start}
+  #home>header{grid-column:1 / -1}
+  #home>#heroTilt{grid-column:1;grid-row:2 / span 3;position:sticky;top:80px}
+  #home>#sub{grid-column:2;grid-row:2;margin-top:0!important}
+  #home>#sess{grid-column:2;grid-row:3}
+  #home>#homeHint{grid-column:2;grid-row:4}
+  .hero{padding:38px 30px 32px}
+  .dial{transform:scale(1.12);margin-bottom:10px}
+  #stats>#statList,#rep>#month{max-width:none}
+  #statList{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .sess-row{padding:16px 18px}
+}
+@media (min-width:1400px){
+  .wrap{max-width:1360px}
+  #setBar{max-width:1360px}
+}
+
 @media print{
   body{background:#fff;color:#000}
   .noprint,.tabbar,.rays{display:none!important}
@@ -502,6 +528,7 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;bac
   <button class="btn ghost sm noprint" id="print" style="margin-top:24px">הדפסה / שמירה כ-PDF</button>
 </div>
 
+<div id="setBar">
 <button id="setBtn" class="glass" aria-label="הגדרות">
   <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 9 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 9a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>
 </button>
@@ -511,6 +538,7 @@ input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;bac
   <button class="btn ghost sm" id="motionBtn">אנימציות</button>
   <button class="btn ghost sm" id="recal">כיול מחדש</button>
   <button class="btn ghost sm" id="reset" style="color:var(--bad)">מחיקת כל הנתונים</button>
+</div>
 </div>
 <nav class="tabbar hidden" id="tabbar">
   <i class="tabpill" id="tabpill"></i>
